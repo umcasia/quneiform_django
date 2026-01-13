@@ -1,0 +1,475 @@
+{% extends 'base.html' %}
+
+{% block title %}Cities - Master Data{% endblock %}
+
+{% block header_title %}Master Data{% endblock %}
+
+{% block page_title %}City Management{% endblock %}
+
+{% block page_description %}Manage cities and their details{% endblock %}
+
+{% block page_header_actions %}
+<div class="d-flex gap-2">
+    {% comment %} <button class="btn btn-outline-secondary">
+        <i class="fas fa-download me-2"></i> Export
+    </button> {% endcomment %}
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCityModal">
+        <i class="fas fa-plus me-2"></i> Add City
+    </button>
+</div>
+{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard' %}"><i class="fas fa-home"></i></a></li>
+        <li class="breadcrumb-item"><a href="#">Master Data</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Cities</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<!-- Cities Card -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-map-marked-alt"></i> Cities List
+        </h5>
+        <div class="d-flex align-items-center">
+            <form method="get" class="d-flex gap-2">
+                <input type="text"
+                    name="search"
+                    value="{{ search|default_if_none:'' }}"
+                    class="form-control form-control-sm"
+                    placeholder="Search city">
+
+                <select name="state" id="state" class="form-select state-select">
+                    <option value="">Select State</option>
+                    {% for s in states %}
+                        <option value="{{ s.state_id }}"
+                            {% if state_id == s.state_id|stringformat:"s" %}selected{% endif %}>
+                            {{ s.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+                <select name="district" id="district" class="form-select district-select">
+                    <option value="">Select District</option>
+                    {% for d in districts %}
+                        <option value="{{ d.district_id }}"
+                            {% if district_id == d.district_id|stringformat:"s" %}selected{% endif %}>
+                            {{ d.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All</option>
+                    <option value="active" {% if status == 'active' %}selected{% endif %}>
+                        Active
+                    </option>
+                    <option value="inactive" {% if status == 'inactive' %}selected{% endif %}>
+                        Inactive
+                    </option>
+                </select>
+
+                <button class="btn btn-sm btn-primary">
+                    <i class="fas fa-filter"></i>
+                </button>
+
+                {% if search or status or state_id or district_id %}
+                <a href="{% url 'city-list' %}" class="btn btn-sm btn-secondary">
+                    <i class="fas fa-times"></i>
+                </a>
+                {% endif %}
+            </form>
+
+        </div>
+    </div>
+    
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>City</th>
+                    <th>District</th>
+                    <th>State</th>
+                    <th>Status</th>
+                    <th>Created At</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for city in cities %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ city.name }}</td>
+                    <td>{{ city.district.name }}</td>
+                    <td>{{ city.district.state.name }}</td>
+                    <td>
+                        {% if city.is_active %}
+                            <span class="status-badge status-active">Active</span>
+                        {% else %}
+                            <span class="status-badge status-inactive">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ city.created_at|date:"d M Y" }}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn-edit"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#editCityModal{{ city.city_id }}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            
+                            <form method="post"
+                                action="{% url 'city-delete' city.city_id %}"
+                                style="display:inline;"
+                                onsubmit="return confirm('Deactivate this city?')">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-reject">
+                                    <i class="fas fa-ban"></i>
+                                </button>
+                            </form>
+
+                        </div>
+                    </td>
+                </tr>
+
+                <!-- EDIT MODAL -->
+
+                <div class="modal fade" id="editCityModal{{ city.city_id }}" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <form method="post" action="{% url 'city-edit' city.city_id %}">
+                                {% csrf_token %}
+                                <div class="modal-header">
+                                    <h5>Edit City</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+
+                                <div class="modal-body">
+                                    <div class="row">
+
+                                        <div class="col-md-6 mb-3">
+                                            <label>State</label>
+                                            <select class="form-select state-select"
+                                                    data-target="{{ city.city_id }}">
+                                                {% for s in states %}
+                                                    <option value="{{ s.state_id }}"
+                                                        {% if s.state_id == city.district.state_id %}selected{% endif %}>
+                                                        {{ s.name }}
+                                                    </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label>District</label>
+                                            <select name="district"
+                                                    class="form-select district-select"
+                                                    data-target="{{ city.city_id }}"
+                                                    data-selected="{{ city.district_id }}">
+                                                {% for d in city.district.state.districts.all %}
+                                                    <option value="{{ d.district_id }}"
+                                                        {% if d.district_id == city.district_id %}selected{% endif %}>
+                                                        {{ d.name }}
+                                                    </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label>City Name</label>
+                                            <input type="text"
+                                                name="name"
+                                                value="{{ city.name }}"
+                                                class="form-control"
+                                                required>
+                                        </div>
+
+                                        <div class="col-md-6 mb-3 d-flex align-items-center">
+                                            <label>
+                                                <input type="checkbox" name="is_active"
+                                                    {% if city.is_active %}checked{% endif %}>
+                                                Active
+                                            </label>
+                                        </div>
+
+                                    </div>
+                                </div>
+
+                                <div class="modal-footer">
+                                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    <button class="btn btn-primary">Update</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center">No Cities found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+
+        </table>
+        {% if search or status or state_id or district_id %}
+        <div class="alert alert-light border mb-2 py-1 px-2">
+            <small>
+                Filters applied:
+                {% if search %}<b>Search:</b> "{{ search }}"{% endif %}
+                {% if status %}<b>Status:</b> {{ status|title }}{% endif %}
+            </small>
+        </div>
+        {% endif %}
+
+    </div>
+    
+    {% if cities.paginator.num_pages > 1 %}
+    <div class="card-footer bg-white">
+        <div class="d-flex justify-content-between align-items-center">
+
+            <div class="text-muted small">
+                Showing {{ cities.start_index }} – {{ cities.end_index }}
+                of {{ cities.paginator.count }} cities
+            </div>
+
+            <nav class="mt-3">
+                <ul class="pagination mb-0">
+
+                    <!-- Previous -->
+                    {% if cities.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link"
+                        href="?page={{ cities.previous_page_number }}&search={{ search }}&status={{ status }}">
+                            Previous
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">Previous</span>
+                    </li>
+                    {% endif %}
+
+                    <!-- Page numbers -->
+                    {% for num in cities.paginator.page_range %}
+                        {% if num == cities.number %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                        {% elif num > cities.number|add:'-3' and num < cities.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link"
+                                href="?page={{ num }}&search={{ search }}&status={{ status }}">
+                                    {{ num }}
+                                </a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    <!-- Next -->
+                    {% if cities.has_next %}
+                    <li class="page-item">
+                        <a class="page-link"
+                        href="?page={{ cities.next_page_number }}&search={{ search }}&status={{ status }}">
+                            Next
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">Next</span>
+                    </li>
+                    {% endif %}
+
+                </ul>
+            </nav>
+
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<!-- Add State Modal -->
+<div class="modal fade" id="addCityModal" tabindex="-1" aria-labelledby="addCityModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addCityModalLabel">
+                    <i class="fas fa-plus-circle me-2"></i> Add New State
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post" action="{% url 'city-create' %}" id="addStateForm">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="name" class="form-label">State </label>
+                            <select id="state" class="form-select state-select" required>
+                                <option value="">Select State</option>
+                                {% for s in states %}
+                                    <option value="{{ s.state_id }}">{{ s.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="name" class="form-label">District </label>
+                            <select name="district" id="district" class="form-select district-select" required>
+                                <option value="">Select District</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="name" class="form-label">City Name *</label>
+                            <input type="text" name="name" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="is_active" name="is_active" checked>
+                                <label class="form-check-label" for="is_active">
+                                    Active State
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="addStateForm" class="btn btn-primary">Save State</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Toast Container -->
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1100;">
+    {% for message in messages %}
+    <div class="toast align-items-center text-bg-success border-0 mb-2"
+         role="alert"
+         aria-live="assertive"
+         aria-atomic="true"
+         data-bs-delay="3000">
+        <div class="d-flex">
+            <div class="toast-body">
+                <i class="fas fa-check-circle me-2"></i>
+                {{ message }}
+            </div>
+            <button type="button"
+                    class="btn-close btn-close-white me-2 m-auto"
+                    data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('change', function (e) {
+    if (!e.target.classList.contains('state-select')) return;
+
+    const container = e.target.closest('form') || e.target.closest('.modal');
+    const districtSelect = container.querySelector('.district-select');
+    if (!districtSelect) return;
+
+    const stateId = e.target.value;
+    districtSelect.innerHTML = '<option>Loading...</option>';
+
+    if (!stateId) {
+        districtSelect.innerHTML = '<option value="">Select District</option>';
+        return;
+    }
+
+    fetch(`/masters/districts/by-state/?state_id=${stateId}`)
+        .then(res => res.json())
+        .then(data => {
+            districtSelect.innerHTML = '<option value="">Select District</option>';
+            data.forEach(d => {
+                districtSelect.innerHTML += `<option value="${d.district_id}">${d.name}</option>`;
+            });
+        });
+});
+
+</script>
+
+
+<script>
+    
+    // Handle state actions
+    document.querySelectorAll('.btn-reject').forEach(button => {
+        button.addEventListener('click', function(e) {
+            const stateName = this.closest('tr').querySelector('.fw-semibold').textContent;
+            
+            if (confirm(`Are you sure you want to deactivate ${stateName}?`)) {
+                // In a real app, you would make an AJAX request here
+                const statusBadge = this.closest('tr').querySelector('.status-badge');
+                const originalHTML = this.innerHTML;
+                this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                
+                // Simulate API call
+                setTimeout(() => {
+                    statusBadge.className = 'status-badge status-inactive';
+                    statusBadge.innerHTML = '<i class="fas fa-ban"></i> Inactive';
+                    this.innerHTML = '<i class="fas fa-check"></i>';
+                    this.classList.remove('btn-reject');
+                    this.classList.add('btn-edit');
+                    this.title = 'Activate';
+                    
+                    alert(`State "${stateName}" has been deactivated.`);
+                }, 1000);
+            }
+        });
+    });
+    
+    // Handle edit buttons
+    document.querySelectorAll('.btn-edit').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const row = this.closest('tr');
+            if (!row) return;
+
+            const cityName = row.children[1]?.textContent?.trim();
+            const statusBadge = this.closest('tr').querySelector('.status-badge');
+            
+            if (this.title === 'Activate') {
+                // Activate state
+                if (confirm(`Are you sure you want to activate ${cityName}?`)) {
+                    const originalHTML = this.innerHTML;
+                    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                    
+                    // Simulate API call
+                    setTimeout(() => {
+                        statusBadge.className = 'status-badge status-active';
+                        statusBadge.innerHTML = '<i class="fas fa-check-circle"></i> Active';
+                        this.innerHTML = '<i class="fas fa-ban"></i>';
+                        this.classList.remove('btn-edit');
+                        this.classList.add('btn-reject');
+                        this.title = 'Deactivate';
+                        
+                        alert(`City "${cityName}" has been activated.`);
+                    }, 1000);
+                }
+            } else {
+                // Show edit modal
+                console.log(`Editing city: ${cityName}`);
+                // In a real app, you would populate the edit modal with data
+            }
+        });
+    });
+    
+    // Handle view buttons
+    document.querySelectorAll('.btn-view').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const stateName = this.closest('tr').querySelector('.fw-semibold').textContent;
+            alert(`Viewing details for: ${stateName}\n\nThis would open a detailed view in a real application.`);
+        });
+    });
+</script>
+
+{% endblock %}

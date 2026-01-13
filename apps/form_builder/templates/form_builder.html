@@ -1,0 +1,2869 @@
+<!-- templates/form_builder/form_builder.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Form Builder - {{ project.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .auto-save-notification {
+        animation: slideInUp 0.3s ease;
+    }
+
+    @keyframes slideInUp {
+        from {
+            transform: translateY(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+    .drag-over {
+        border: 2px dashed #0d6efd;
+        background-color: rgba(13, 110, 253, 0.1);
+    }
+    .drag-handle {
+        cursor: move;
+        color: #6c757d;
+    }
+    .section-title {
+        font-weight: 600;
+    }
+    .control-type-badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        background-color: #6c757d;
+        color: white;
+        margin-left: 0.5rem;
+    }
+    .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: #6c757d;
+    }
+    .empty-state.small {
+        padding: 1rem;
+    }
+    .empty-state.small i {
+        font-size: 1.5rem;
+    }
+    .property-group {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #dee2e6;
+    }
+    .option {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+        align-items: center;
+    }
+    .option input {
+        flex: 1;
+    }
+    .form-section, .form-builder-container {
+        background-color: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1.5rem;
+    }
+    .preview-container {
+        background-color: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+        margin-top: 1.5rem;
+    }
+    #jsonOutput {
+        background-color: #2b3035;
+        color: #e9ecef;
+        padding: 1rem;
+        border-radius: 0.25rem;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    .card-header {
+        background-color: rgba(0, 0, 0, 0.03);
+    }
+    .nested-section {
+        margin-left: 1rem;
+        border-left: 3px solid #0d6efd;
+    }
+    .control-card {
+        margin-bottom: 0.75rem;
+    }
+    .childrenContainer {
+        min-height: 50px;
+        padding: 0.5rem;
+        border: 1px dashed #dee2e6;
+        border-radius: 0.25rem;
+        margin-bottom: 0.5rem;
+    }
+    .condition-group {
+        border-left: 3px solid #0d6efd;
+        padding-left: 15px;
+        margin-bottom: 15px;
+    }
+    .condition-item {
+        background-color: #f8f9fa;
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 10px;
+        border: 1px solid #dee2e6;
+    }
+    .condition-actions {
+        margin-top: 10px;
+    }
+    .logic-relation {
+        font-weight: bold;
+        margin: 10px 0;
+        padding: 5px;
+        background-color: #e9ecef;
+        border-radius: 4px;
+    }
+    .acronym-field {
+        display: none;
+    }
+
+    .build-skip-logic {
+        transition: all 0.2s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .build-skip-logic:after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 5px;
+        height: 5px;
+        background: rgba(255, 255, 255, 0.5);
+        opacity: 0;
+        border-radius: 100%;
+        transform: scale(1, 1) translate(-50%);
+        transform-origin: 50% 50%;
+    }
+
+    .build-skip-logic:focus:not(:active)::after {
+        animation: ripple 1s ease-out;
+    }
+
+    @keyframes ripple {
+        0% {
+            transform: scale(0, 0);
+            opacity: 0.5;
+        }
+        20% {
+            transform: scale(25, 25);
+            opacity: 0.3;
+        }
+        100% {
+            opacity: 0;
+            transform: scale(40, 40);
+        }
+    }
+
+    .build-skip-logic:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Back Button -->
+    <div class="mb-4">
+        <a href="{% url 'subunits:list' project.id %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Subunits
+        </a>
+    </div>
+    
+    <div class="container py-4">
+        <div class="mb-2">
+            <h3 class="mb-3"><i class="fas fa-layer-group me-2"></i>Build your form</h3>
+            <h5 class="mb-3 text-danger">
+                <i class="fas fa-info me-2 text-info"></i>
+                Primary language is English, AI based translations in other Indian languages will be available for use within 24 hours automatically.
+            </h5>
+        </div>
+        
+        {% if subunit %}
+        <div class="alert alert-info">
+            <i class="fas fa-edit me-2"></i>
+            You are editing: <strong>{{ subunit.name }}</strong> ({{ subunit.acronym }})
+        </div>
+        {% endif %}
+        
+        {% if messages %}
+        <div class="mb-4">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        <div class="form-section border">
+            <div class="row g-3">
+                <div class="col-md-12">
+                    <div class="mb-2">
+                        <label for="formName" class="form-label fw-bold fs-5">Survey Form Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control form-control-sm" id="formName" 
+                               placeholder="e.g., Waste Pickers Survey" 
+                               value="{{ subunit.name|default:'' }}" required>
+                    </div>
+                </div>
+                <input type="hidden" class="form-control form-control-sm" id="acronym" 
+                       value="{{ subunit.acronym|default:'' }}" required>
+                <input type="hidden" class="form-control form-control-sm" id="version" 
+                       value="{{ subunit.version|default:'1' }}" required>
+                
+                <div class="border"></div>
+                
+                <div class="col-md-12">
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <div class="fw-bold fs-5">
+                                What data checks do you want to include in your survey?
+                            </div>
+                        </div>
+                        <div class="col-md-3 mt-2">
+                            <div class="mb-2">
+                                <label for="have_qc">Quality Check</label>
+                                <input type="checkbox" class="action-checkbox" name="have_qc" id="have_qc" 
+                                       value="1" {% if not subunit or subunit.have_qc %}checked{% endif %}>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-2">
+                                <label for="have_validation">Validations</label>
+                                <input type="checkbox" class="action-checkbox" name="have_validation" id="have_validation" 
+                                       value="1" {% if not subunit or subunit.have_validation %}checked{% endif %}>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-2">
+                                <label for="is_web">Web Platform</label>
+                                <input type="checkbox" class="action-checkbox" name="is_web" id="is_web" 
+                                       value="1" {% if not subunit or subunit.is_web %}checked{% endif %}>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-2">
+                                <label for="is_app">Mobile App</label>
+                                <input type="checkbox" class="action-checkbox" name="is_app" id="is_app" 
+                                       value="1" {% if not subunit or subunit.is_app %}checked{% endif %}>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-builder-container border">
+            <div id="sectionsContainer">
+                <div class="empty-state">
+                    <i class="fas fa-inbox"></i>
+                    <h5>No Sections Added</h5>
+                    <p>Drag elements from the toolbox or click the button below to get started</p>
+                    <button class="btn btn-primary btn-sm mt-2" id="addFirstSectionBtn">
+                        <i class="fas fa-plus me-2"></i>Add First Section
+                    </button>
+                </div>
+            </div>
+            
+            <div class="d-grid mt-3">
+                <button type="button" class="btn btn-success btn-sm" id="addSectionBtn">
+                    <i class="fas fa-plus-circle me-2"></i>Add New Section
+                </button>
+            </div>
+        </div>
+        
+        <div class="d-flex justify-content-end mt-3 gap-2">
+            <!-- Generate Form -->
+            <button type="button" class="btn btn-primary btn-sm" id="generateJsonBtn">
+                <i class="fas fa-code me-2"></i>Generate Form
+            </button>
+            
+            <!-- Draft buttons -->
+            <button type="button" class="btn btn-info btn-sm" id="saveDraftBtn">
+                <i class="fas fa-save me-2"></i>Save Draft
+            </button>
+            <button type="button" class="btn btn-warning btn-sm" id="loadDraftBtn">
+                <i class="fas fa-folder-open me-2"></i>Load Draft
+            </button>
+            
+            <!-- Export Json -->
+            <button type="button" class="btn btn-success btn-sm" id="exportJsonBtn" disabled>
+                <i class="fas fa-file-export me-2"></i>Export JSON
+            </button>
+        </div>
+        
+        <!-- Hidden Form for Submission -->
+        <form method="post" id="json_schema_submit_form" class="d-none">
+            {% csrf_token %}
+            
+            {% if subunit %}
+            <input type="hidden" name="subunit_id" value="{{ subunit.id }}">
+            {% endif %}
+            
+            <input type="hidden" name="form_name" id="hidden_form_name">
+            <input type="hidden" name="acronym" id="hidden_acronym">
+            <input type="hidden" name="version" id="hidden_version">
+            <input type="hidden" name="is_web" id="hidden_is_web" value="1">
+            <input type="hidden" name="is_app" id="hidden_is_app" value="1">
+            <input type="hidden" name="have_qc" id="hidden_have_qc" value="1">
+            <input type="hidden" name="have_validation" id="hidden_have_validation" value="1">
+            <input type="hidden" name="json_schema" id="hidden_json_schema">
+        </form>
+        
+        <div class="preview-container mt-4">
+            <h4 class="mb-3"><i class="fas fa-file-code me-2"></i>Generated JSON</h4>
+            <pre id="jsonOutput">// JSON will appear here after generation</pre>
+        </div>
+    </div>
+</div>
+
+<!-- Skip Logic Modal -->
+<div class="modal fade" id="skipLogicModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Skip Logic Builder</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="skipLogicBuilder">
+                    <div class="logic-relation">WHERE 
+                        <select class="form-select form-select-sm d-inline-block w-auto ms-1" id="rootRelation">
+                            <option value="and">ALL</option>
+                            <option value="or">ANY</option>
+                        </select> 
+                        OF THE FOLLOWING CONDITIONS ARE MET:
+                    </div>
+                    <div id="conditionsContainer"></div>
+                    <button type="button" class="btn btn-sm btn-primary mt-2" id="addConditionBtn">
+                        <i class="fas fa-plus me-1"></i>Add Condition
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-primary mt-2 ms-1" id="addConditionGroupBtn">
+                        <i class="fas fa-layer-group me-1"></i>Add Condition Group
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="applySkipLogicBtn">Apply Logic</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Save Draft Modal -->
+<div class="modal fade" id="saveDraftModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Save Draft</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="draftName" class="form-label">Draft Name</label>
+                    <input type="text" class="form-control" id="draftName" placeholder="Enter a name for your draft" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmSaveDraftBtn">Save Draft</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Load Draft Modal -->
+<div class="modal fade" id="loadDraftModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Load Draft</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="draftsList">
+                    <div class="text-center py-3">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading drafts...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Auto-save Restore Modal -->
+<div class="modal fade" id="autoSaveRestoreModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Auto-saved Draft Found</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>We found an auto-saved draft from <strong id="autoSaveTime"></strong>.</p>
+                <p>Would you like to restore it?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="discardAutoSaveBtn">Discard</button>
+                <button type="button" class="btn btn-primary" id="restoreAutoSaveBtn">Restore Draft</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script>
+    const usedOptionIds = new Set();
+    const usedFieldIds = new Set();
+    const usedAcronyms = new Set();
+    
+    // Django CSRF token for AJAX requests
+    const csrfToken = "{{ csrf_token }}";
+    
+    // URLs for AJAX requests
+    const urls = {
+        saveDraft: "{% url 'form_builder:save_draft' %}",
+        autoSaveDraft: "{% url 'form_builder:auto_save_draft' %}",
+        getAutoSaveDraft: "{% url 'form_builder:get_auto_save_draft' %}",
+        deleteAutoSaveDraft: "{% url 'form_builder:delete_auto_save_draft' %}",
+        listDrafts: "{% url 'form_builder:list_drafts' %}",
+        loadDraft: (id) => `/load-draft/${id}/`,
+        deleteDraft: (id) => `/delete-draft/${id}/`,
+        submitForm: "{% if subunit %}{% url 'form_builder:submit_edit' project.id subunit.id %}{% else %}{% url 'form_builder:submit' project.id %}{% endif %}"
+    };
+
+    function generateOptionId(displayValue, controlId) {
+        if (!displayValue) return '';
+        
+        let baseId = displayValue
+            .toLowerCase()
+            .replace(/[^a-zA-Z0-9 ]/g, '')
+            .trim()
+            .replace(/\s+/g, '_')
+            .substring(0, 30);
+        
+        const fullId = `${controlId}_${baseId}`;
+        
+        if (!usedOptionIds.has(fullId)) {
+            usedOptionIds.add(fullId);
+            return fullId;
+        }
+        
+        let counter = 1;
+        let candidateId = fullId;
+        
+        while (usedOptionIds.has(candidateId)) {
+            candidateId = `${fullId}_${counter}`;
+            counter++;
+        }
+        
+        usedOptionIds.add(candidateId);
+        return candidateId;
+    }
+
+    function removeOptionIdsForControl(controlId) {
+        for (const id of usedOptionIds) {
+            if (id.startsWith(`${controlId}_`)) {
+                usedOptionIds.delete(id);
+            }
+        }
+    }
+
+    function generateId(label) {
+        if (!label || label.trim().length === 0) {
+            return generateUniqueId("field");
+        }
+
+        let baseId = label
+            .replace(/[^a-zA-Z0-9 ]/g, '')
+            .trim()
+            .replace(/\s+/g, '_')
+            .toLowerCase();
+
+        baseId = baseId.substring(0, 30);
+
+        if (!usedFieldIds.has(baseId)) {
+            usedFieldIds.add(baseId);
+            return baseId;
+        }
+
+        let counter = 1;
+        let candidateId = baseId;
+
+        while (usedFieldIds.has(candidateId)) {
+            const suffix = "_" + counter;
+            const maxBaseLength = 30 - suffix.length;
+
+            candidateId = baseId.substring(0, maxBaseLength) + suffix;
+            counter++;
+
+            if (counter > 9999) {
+                candidateId = baseId.substring(0, 25) + "_" + Date.now().toString().slice(-5);
+                break;
+            }
+        }
+
+        usedFieldIds.add(candidateId);
+        return candidateId;
+    }
+
+    function generateUniqueId(baseId) {
+        baseId = baseId.toLowerCase().replace(/[^a-zA-Z0-9_]/g, '').substring(0, 30);
+
+        let counter = 1;
+        let candidateId = baseId;
+
+        while (usedFieldIds.has(candidateId)) {
+            const suffix = "_" + counter;
+            const maxBaseLength = 30 - suffix.length;
+
+            candidateId = baseId.substring(0, maxBaseLength) + suffix;
+            counter++;
+        }
+
+        usedFieldIds.add(candidateId);
+        return candidateId;
+    }
+
+    function removeFieldId(fieldId) {
+        usedFieldIds.delete(fieldId);
+    }
+
+    function generateAcronym(title, usedAcronyms) {
+        if (!title || title.trim().length === 0) {
+            return generateRandomAcronym(usedAcronyms);
+        }
+
+        const words = title.replace(/[^a-zA-Z0-9 ]/g, '')
+                        .split(/\s+/)
+                        .filter(word => word.length > 0);
+
+        let acronym = '';
+
+        if (words.length >= 3) {
+            acronym = words[0].charAt(0) + words[1].charAt(0) + words[2].charAt(0);
+        } else if (words.length === 2) {
+            acronym = words[0].charAt(0) + words[1].charAt(0) + words[1].charAt(1) || 'X';
+        } else if (words.length === 1) {
+            acronym = words[0].substring(0, 3);
+        }
+
+        acronym = acronym.toUpperCase().substring(0, 3);
+        
+        if (acronym.length < 3) {
+            acronym = acronym.padEnd(3, generateRandomChar());
+        }
+
+        if (!usedAcronyms.has(acronym)) {
+            usedAcronyms.add(acronym);
+            return acronym;
+        }
+
+        return generateRandomAcronym(usedAcronyms);
+    }
+
+    function generateRandomAcronym(usedAcronyms) {
+        const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        let acronym;
+        let attempts = 0;
+        
+        do {
+            acronym = '';
+            for (let i = 0; i < 3; i++) {
+                acronym += letters.charAt(Math.floor(Math.random() * letters.length));
+            }
+            attempts++;
+            
+            if (attempts > 100) {
+                acronym = 'GEN';
+                break;
+            }
+        } while (usedAcronyms.has(acronym));
+        
+        usedAcronyms.add(acronym);
+        return acronym;
+    }
+
+    function generateRandomChar() {
+        const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        return letters.charAt(Math.floor(Math.random() * letters.length));
+    }
+
+    function updateFormAcronym() {
+        const formName = document.getElementById('formName').value;
+        const formAcronym = generateAcronym(formName, usedAcronyms);
+        document.getElementById('acronym').value = formAcronym;
+    }
+
+    function updateSectionAcronym(sectionElement) {
+        const sectionTitle = sectionElement.querySelector('.sectionTitle').value;
+        const sectionAcronymInput = sectionElement.querySelector('.sectionAcronym');
+        const sectionAcronym = generateAcronym(sectionTitle, usedAcronyms);
+        sectionAcronymInput.value = sectionAcronym;
+    }
+
+    // Initialize Bootstrap modals
+    const skipLogicModal = new bootstrap.Modal(document.getElementById('skipLogicModal'));
+    const saveDraftModal = new bootstrap.Modal(document.getElementById('saveDraftModal'));
+    const loadDraftModal = new bootstrap.Modal(document.getElementById('loadDraftModal'));
+    const autoSaveRestoreModal = new bootstrap.Modal(document.getElementById('autoSaveRestoreModal'));
+    
+    let currentSkipLogicTextarea = null;
+    let availableControls = [];
+    let sortableSections;
+
+    // Initialize form from existing subunit data
+    {% if subunit and subunit.qnr_schema %}
+    document.addEventListener('DOMContentLoaded', function() {
+        const schema = {{ subunit.qnr_schema|safe }};
+        restoreFormFromDraft({
+            form_name: "{{ subunit.name }}",
+            acronym: "{{ subunit.acronym }}",
+            version: "{{ subunit.version|default:'1' }}",
+            is_web: {% if subunit.is_web %}true{% else %}false{% endif %},
+            is_app: {% if subunit.is_app %}true{% else %}false{% endif %},
+            have_qc: {% if subunit.have_qc %}true{% else %}false{% endif %},
+            have_validation: {% if subunit.have_validation %}true{% else %}false{% endif %},
+            form_schema: schema
+        });
+    });
+    {% endif %}
+
+    // Checkbox logic
+    document.addEventListener('DOMContentLoaded', function() {
+        const actionCheckboxes = document.querySelectorAll('.action-checkbox');
+        
+        actionCheckboxes.forEach(function(checkbox) {
+            checkbox.addEventListener('change', function() {
+                const hiddenId = 'hidden_' + this.name;
+                const hiddenInput = document.getElementById(hiddenId);
+                
+                if (hiddenInput) {
+                    hiddenInput.value = this.checked ? '1' : '0';
+                }
+            });
+            
+            // Trigger initial change
+            checkbox.dispatchEvent(new Event('change'));
+        });
+        
+        // Update form acronym on load
+        updateFormAcronym();
+    });
+
+    // Add First Section
+    document.getElementById('addFirstSectionBtn')?.addEventListener('click', addNewSection);
+
+    // Add Section
+    document.getElementById('addSectionBtn').addEventListener('click', addNewSection);
+
+    function addNewSection() {
+        const sectionsContainer = document.getElementById('sectionsContainer');
+        
+        if (sectionsContainer.querySelector('.empty-state')) {
+            sectionsContainer.innerHTML = '';
+        }
+        
+        const sectionId = 'section_' + Date.now();
+        const sectionAcronym = generateAcronym('New Section', usedAcronyms);
+        
+        const sectionTemplate = `
+            <div class="section card mb-2" data-id="${sectionId}" data-type="SECTION">
+                <div class="card-header py-2 d-flex justify-content-between align-items-center bg-secondary text-light">
+                    <div>
+                        <span class="drag-handle"><i class="fas fa-grip-vertical"></i></span>
+                        <span class="section-title">New Section</span>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-sm btn-outline-primary addSubsectionBtn text-light">
+                            <i class="fas fa-folder-plus me-1"></i>Sub-section
+                        </button>
+                        <button type="button" class="btn btn-sm btn-danger removeSectionBtn ms-1">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body py-2">
+                    <div class="row g-2">
+                        <div class="col-md-8">
+                            <div class="mb-2">
+                                <label class="form-label">Title <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm sectionTitle" value="New Section" required>
+                                <input type="hidden" class="form-check-input sectionIsActive" value="1">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <input type="hidden" class="sectionAcronym" value="${sectionAcronym}" required>
+                    
+                    <div class="childrenContainer mb-2">
+                        <div class="empty-state small">
+                            <i class="fas fa-inbox"></i>
+                            <p>No elements in this section</p>
+                            <button class="btn btn-sm btn-outline-primary addControlBtn">
+                                <i class="fas fa-plus me-1"></i>Add Question
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-end">
+                        <button type="button" class="btn btn-sm btn-primary addControlBtn">
+                            <i class="fas fa-plus-circle me-1"></i>Add Question
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        sectionsContainer.insertAdjacentHTML('beforeend', sectionTemplate);
+        
+        const newSection = sectionsContainer.lastElementChild;
+        const titleInput = newSection.querySelector('.sectionTitle');
+        titleInput.addEventListener('input', function() {
+            updateSectionAcronym(newSection);
+        });
+        
+        initSortable();
+    }
+
+    function initSortable() {
+        if (sortableSections) sortableSections.destroy();
+        
+        sortableSections = new Sortable(document.getElementById('sectionsContainer'), {
+            handle: '.drag-handle',
+            animation: 150,
+            ghostClass: 'drag-over'
+        });
+        
+        document.querySelectorAll('.childrenContainer').forEach(container => {
+            new Sortable(container, {
+                group: 'nested',
+                animation: 150,
+                handle: '.drag-handle',
+                ghostClass: 'drag-over'
+            });
+        });
+    }
+
+    // Event listener for form name changes
+    document.getElementById('formName').addEventListener('input', updateFormAcronym);
+
+    // Event Delegation for Dynamic Elements
+    document.addEventListener('click', (event) => {
+        // Add Control
+        if (event.target.classList.contains('addControlBtn')) {
+            const cardBody = event.target.closest('.card-body');
+            const childrenContainer = cardBody.querySelector('.childrenContainer');
+            
+            if (childrenContainer.querySelector('.empty-state')) {
+                childrenContainer.innerHTML = '';
+            }
+            
+            const controlId = 'control_' + Date.now();
+            const controlTemplate = `
+                <div class="control-card card mb-2" data-id="${controlId}" data-type="CONTROL">
+                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="drag-handle"><i class="fas fa-grip-vertical"></i></span>
+                            <span>New Control</span>
+                            <span class="control-type-badge">TEXT</span>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-danger removeControlBtn">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                    <div class="card-body py-2">
+                        <div class="row g-2">
+                            <div class="col-md-12">
+                                <div class="mb-2">
+                                    <label class="form-label">Type</label>
+                                    <select class="form-control form-control-sm controlType" required>
+                                        <option value="">Select Type</option>
+                                        <option value="TEXT">Text Field (Single line text)</option>
+                                        <option value="DROPDOWN">Dropdown</option>
+                                        <option value="RADIO">Radio Buttons</option>
+                                        <option value="TEXT_AREA">Text Area (Multi line text)</option>
+                                        <option value="UPLOAD_IMAGE">Image Upload</option>
+                                        <option value="DATE">Date Picker</option>
+                                        <option value="NUMBERS">Number Field</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <input type="hidden" class="fieldId" value="">
+                        
+                        <div class="control-fields additionalFields">
+                            <div class="alert alert-info py-2">
+                                <i class="fas fa-info-circle me-2"></i>Select a control type to configure properties
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            childrenContainer.insertAdjacentHTML('beforeend', controlTemplate);
+            
+            new Sortable(childrenContainer, {
+                group: 'nested',
+                animation: 150,
+                handle: '.drag-handle',
+                ghostClass: 'drag-over'
+            });
+        }
+        
+        // Add Sub-section
+        else if (event.target.classList.contains('addSubsectionBtn')) {
+            const section = event.target.closest('.section');
+            const childrenContainer = section.querySelector('.childrenContainer');
+            
+            if (childrenContainer.querySelector('.empty-state')) {
+                childrenContainer.innerHTML = '';
+            }
+            
+            const sectionId = 'section_' + Date.now();
+            const sectionAcronym = generateAcronym('New Sub-section', usedAcronyms);
+            
+            const sectionTemplate = `
+                <div class="nested-section section card mb-2" data-id="${sectionId}" data-type="SECTION">
+                    <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="drag-handle"><i class="fas fa-grip-vertical"></i></span>
+                            <span class="section-title">New Sub-section</span>
+                        </div>
+                        <div>
+                            <button type="button" class="btn btn-sm btn-outline-primary addSubsectionBtn">
+                                <i class="fas fa-folder-plus me-1"></i>Nest
+                            </button>
+                            <button type="button" class="btn btn-sm btn-danger removeSectionBtn ms-1">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body py-2">
+                        <div class="row g-2">
+                            <div class="col-md-8">
+                                <div class="mb-2">
+                                    <label class="form-label">Title <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control form-control-sm sectionTitle" value="New Sub-section" required>
+                                    <input type="hidden" class="form-check-input sectionIsActive" value="1">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <input type="hidden" class="sectionAcronym" value="${sectionAcronym}" required>
+                        
+                        <div class="childrenContainer mb-2">
+                            <div class="empty-state small">
+                                <i class="fas fa-inbox"></i>
+                                <p>No elements in this section</p>
+                                <button class="btn btn-sm btn-outline-primary addControlBtn">
+                                    <i class="fas fa-plus me-1"></i>Add Question
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-end">
+                            <button type="button" class="btn btn-sm btn-primary addControlBtn">
+                                <i class="fas fa-plus-circle me-1"></i>Add Question
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            childrenContainer.insertAdjacentHTML('beforeend', sectionTemplate);
+            
+            const newSubsection = childrenContainer.lastElementChild;
+            const titleInput = newSubsection.querySelector('.sectionTitle');
+            titleInput.addEventListener('input', function() {
+                updateSectionAcronym(newSubsection);
+            });
+            
+            new Sortable(childrenContainer, {
+                group: 'nested',
+                animation: 150,
+                handle: '.drag-handle',
+                ghostClass: 'drag-over'
+            });
+        }
+        
+        // Remove Section
+        else if (event.target.classList.contains('removeSectionBtn')) {
+            const section = event.target.closest('.section');
+            const acronym = section.querySelector('.sectionAcronym').value;
+            usedAcronyms.delete(acronym);
+            section.remove();
+            checkEmptyState();
+        }
+        
+        // Remove Control
+        else if (event.target.classList.contains('removeControlBtn')) {
+            const controlCard = event.target.closest('.control-card');
+            const fieldId = controlCard.querySelector('.fieldId')?.value;
+            if (fieldId) {
+                removeFieldId(fieldId);
+            }
+            controlCard.remove();
+        }
+        
+        // Add Option
+        else if (event.target.classList.contains('addOptionBtn')) {
+            const staticContainer = event.target.closest('.staticOptions');
+            const optionsContainer = staticContainer ? staticContainer.querySelector('.optionsContainer') : null;
+            
+            if (!optionsContainer) return;
+            
+            const optionTemplate = `
+                <div class="option">
+                    <input type="hidden" class="optionId" value="">
+                    <input type="text" class="form-control form-control-sm optionValue" placeholder="Value">
+                    <button type="button" class="btn btn-sm btn-danger removeOptionBtn">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            
+            optionsContainer.insertAdjacentHTML('beforeend', optionTemplate);
+        }
+        
+        // Remove Option
+        else if (event.target.classList.contains('removeOptionBtn')) {
+            event.target.closest('.option').remove();
+        }
+        
+        // Build Skip Logic
+        else if (event.target.classList.contains('build-skip-logic') || 
+                 event.target.closest('.build-skip-logic')) {
+            
+            event.preventDefault();
+            event.stopPropagation();
+            
+            const skipLogicBtn = event.target.classList.contains('build-skip-logic') 
+                ? event.target 
+                : event.target.closest('.build-skip-logic');
+            
+            const inputGroup = skipLogicBtn.closest('.input-group');
+            if (!inputGroup) return;
+            
+            const textarea = inputGroup.querySelector('.skipLogic');
+            if (!textarea) return;
+            
+            skipLogicBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            skipLogicBtn.disabled = true;
+            
+            setTimeout(() => {
+                openSkipLogicBuilder(textarea);
+                
+                setTimeout(() => {
+                    skipLogicBtn.innerHTML = '<i class="fas fa-cog"></i>';
+                    skipLogicBtn.disabled = false;
+                }, 500);
+            }, 50);
+        }
+    });
+
+    // Handle Control Type Change
+    document.addEventListener('change', (event) => {
+        if (event.target.classList.contains('controlType')) {
+            const controlCard = event.target.closest('.control-card');
+            const type = event.target.value;
+            const typeName = controlCard.querySelector('option:checked').text;
+            const typeBadge = controlCard.querySelector('.control-type-badge');
+            
+            typeBadge.textContent = typeName;
+            
+            const additionalFields = controlCard.querySelector('.additionalFields');
+            additionalFields.innerHTML = '';
+            
+            if (!type) return;
+            
+            // Common Fields for All Controls
+            let fieldsHTML = `
+                <div class="property-group">
+                    <h6><i class="fas fa-tag me-2"></i>Properties</h6>
+                    <div class="row g-2">
+                        <div class="col-md-3">
+                            <div class="mb-2">
+                                <label class="form-label">Question Number <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm propertiesQNumber" placeholder="e.g., A.1" required>
+                            </div>
+                        </div>
+                        <div class="col-md-9">
+                            <div class="mb-2">
+                                <label class="form-label">Question Text<span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm propertiesLabel" placeholder="Enter label text" required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="property-group">
+                    <h6><i class="fas fa-check-circle me-2"></i>In-built checks</h6>
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <div class="mb-2 form-check form-switch">
+                                <input type="checkbox" class="form-check-input fieldValidationsValueRequired" checked>
+                                <label class="form-check-label">Value Required</label>
+                            </div>
+                        </div>
+            `;
+
+            const controlId = controlCard.dataset.id;
+            
+            // Type-Specific Fields
+            if (['TEXT'].includes(type)) {
+                fieldsHTML += `
+                    <div class="col-md-4">
+                        <div class="mb-2">
+                            <label class="form-label">Min Characters <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control form-control-sm fieldValidationsMinChar" placeholder="e.g., 2" value="0" min="0" required>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-2">
+                            <label class="form-label">Max Characters <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control form-control-sm fieldValidationsMaxChar" placeholder="e.g., 250" value="250" max="250" required>
+                        </div>
+                    </div>
+                </div>
+                `;
+            } else if (['TEXT_AREA'].includes(type)) {
+                fieldsHTML += `
+                    <div class="col-md-4">
+                        <div class="mb-2">
+                            <label class="form-label">Min Characters <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control form-control-sm fieldValidationsMinChar" placeholder="e.g., 2" value="0" required>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-2">
+                            <label class="form-label">Max Characters <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control form-control-sm fieldValidationsMaxChar" placeholder="e.g., 500" value="500" max="1000" required>
+                        </div>
+                    </div>
+                </div>
+                `;
+            } else if (['DROPDOWN', 'RADIO'].includes(type)) {
+                fieldsHTML += `
+                <div class="col-md-4">
+                    <div class="mb-2 form-check form-switch">
+                        <input type="checkbox" class="form-check-input fieldValidationsMultiSelect">
+                        <label class="form-check-label">Multi Select</label>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-2">
+                        <label class="form-label">Options Type</label>
+                        <select class="form-control form-control-sm optionsType">
+                            <option value="static">Static Options</option>
+                            <option value="dynamic">Dynamic Options</option>
+                        </select>
+                    </div>
+                </div></div>
+                    <div class="option-container staticOptions">
+                        <h6><i class="fas fa-list me-2"></i>Options <span class="text-danger">*</span></h6>
+                        <div class="optionsContainer mb-2">
+                            <div class="option">
+                                <input type="hidden" class="optionId" value="">
+                                <input type="text" class="form-control form-control-sm optionValue" placeholder="Value" value="Option 1">
+                                <button type="button" class="btn btn-sm btn-danger removeOptionBtn">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="option">
+                                <input type="hidden" class="optionId" value="">
+                                <input type="text" class="form-control form-control-sm optionValue" placeholder="Value" value="Option 2">
+                                <button type="button" class="btn btn-sm btn-danger removeOptionBtn">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-primary addOptionBtn">
+                            <i class="fas fa-plus me-1"></i>Add Option
+                        </button>
+                    </div>
+                    <div class="row g-2">
+                        <div class="dynamicOptions col-6" style="display: none;">
+                            <div class="mb-2">
+                                <label class="form-label">DB Table <span class="text-danger">*</span></label>
+                                <select class="form-control form-control-sm fieldValidationsDbTable" required>
+                                    <option value="states">States</option>
+                                    <option value="districts">Districts</option>
+                                    <option value="cities">Cities</option>
+                                    <option value="blocks">Blocks</option>
+                                    <option value="gps">GPs</option>
+                                    <option value="villages">Villages</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="dynamicOptions col-6" style="display: none;">
+                            <div class="mb-2">
+                                <label class="form-label">Limit User Access</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control form-control-sm fieldValidationsAccess" 
+                                        placeholder="Same as DB table name" readonly>
+                                    <div class="input-group-text">
+                                        <div class="form-check form-switch m-0">
+                                            <input type="checkbox" 
+                                                class="form-check-input useAccess" 
+                                                id="useAccess_${controlId}">
+                                            <label class="form-check-label" for="useAccess_${controlId}"></label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                `;
+                
+                if (type === 'DROPDOWN') {
+                    fieldsHTML += `
+                        <div class="col-md-3">
+                            <div class="mb-2 form-check form-switch">
+                                <input type="checkbox" class="form-check-input isSelectAll">
+                                <label class="form-check-label">Is Select All</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-2 form-check form-switch">
+                                <input type="checkbox" class="form-check-input isSelectNone">
+                                <label class="form-check-label">Is Select None</label>
+                            </div>
+                        </div>
+                    </div>
+                    `;
+                }
+            } else if (type === 'DATE') {
+                fieldsHTML += `
+                    <div class="col-md-4">
+                        <div class="mb-2">
+                            <label class="form-label">Min Date Allowed</label>
+                            <input type="text" class="form-control form-control-sm fieldValidationsMinDate" placeholder="e.g., -18Y" hidden>
+                            <div class="d-flex align-items-center gap-2 mt-2 min-duration-group">
+                                <select class="form-select form-select-sm minDir" style="width: 30%;">
+                                    <option value="">--Direction--</option>
+                                    <option value="past">Past</option>
+                                    <option value="future">Future</option>
+                                </select>
+
+                                <select class="form-select form-select-sm minUnit" style="width: 30%;">
+                                    <option value="">--Unit--</option>
+                                    <option value="Y">Year(s)</option>
+                                    <option value="M">Month(s)</option>
+                                    <option value="D">Day(s)</option>
+                                </select>
+
+                                <input type="number" min="0" class="form-control form-control-sm minValue" style="width: 40%;" placeholder="Value">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-2">
+                            <label class="form-label">Max Date Allowed</label>
+                            <input type="text" class="form-control form-control-sm fieldValidationsMaxDate" placeholder="e.g., -18Y" hidden>
+                            <div class="d-flex align-items-center gap-2 mt-2 max-duration-group">
+                                <select class="form-select form-select-sm maxDir" style="width: 30%;">
+                                    <option value="">--Direction--</option>
+                                    <option value="past">Past</option>
+                                    <option value="future">Future</option>
+                                </select>
+
+                                <select class="form-select form-select-sm maxUnit" style="width: 30%;">
+                                    <option value="">--Unit--</option>
+                                    <option value="Y">Year(s)</option>
+                                    <option value="M">Month(s)</option>
+                                    <option value="D">Day(s)</option>
+                                </select>
+
+                                <input type="number" min="0" class="form-control form-control-sm maxValue" style="width: 40%;" placeholder="Value">
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (type === 'NUMBERS') {
+                fieldsHTML += `
+                    <div class="col-md-4">
+                        <div class="mb-2">
+                            <label class="form-label">Max Limit <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control form-control-sm fieldValidationsMaxLimit" placeholder="e.g., 9999999999" value="9999999999" required>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-2">
+                            <label class="form-label">Min Limit <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control form-control-sm fieldValidationsMinLimit" placeholder="e.g., 0" value="0" required>
+                        </div>
+                    </div>
+                </div>
+                `;
+            } else if (type === 'UPLOAD_IMAGE') {
+                fieldsHTML += `
+                    <div class="col-md-4">
+                        <div class="mb-2 form-check form-switch">
+                            <input type="checkbox" class="form-check-input primaryImage">
+                            <label class="form-check-label">Do you want to use this field for primary image on Android application?</label>
+                        </div>
+                    </div>
+                </div>
+                `;
+            }
+            
+            fieldsHTML += `</div>`;
+            
+            fieldsHTML += `
+                <div class="property-group">
+                    <h6><i class="fas fa-eye me-2"></i>Do you want to see this field in the survey list ?</h6>
+                    <div class="row g-2 mt-2">
+                        <div class="col-md-4">
+                            <div class="mb-2 form-check form-switch">
+                                <input type="checkbox" class="form-check-input viewHome">
+                                <label class="form-check-label">Survey list on web portal?</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-2 form-check form-switch">
+                                <input type="checkbox" class="form-check-input filterHome">
+                                <label class="form-check-label">Do you want to use this field for filtering survey list on the web portal?</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-2 form-check form-switch">
+                                <input type="checkbox" class="form-check-input primaryView">
+                                <label class="form-check-label">Survey list on Android application?</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="property-group">
+                    <h6><i class="fas fa-random me-2"></i>Logic</h6>
+                    <div class="mb-2">
+                        <label class="form-label">Apply condition(s) to skip question</label>
+                        <div class="input-group">
+                            <textarea class="form-control form-control-sm skipLogic d-none" rows="2" placeholder='e.g., [{"relation": "and", "flag": true, "data": [{"skipLogicQ": "id", "skipLogicVal": "value", "flag": true}]}]' readonly></textarea>
+                            <button class="btn btn-outline-secondary build-skip-logic" type="button">
+                                <i class="fas fa-cog"></i>
+                            </button>
+                        </div>
+                    </div>
+            `;
+            
+            if (type === 'DROPDOWN') {
+                fieldsHTML += `
+                    <hr>
+                    <div class="mb-2 mt-2 dynamic-parent-question" style="display: none;">
+                        <label class="form-label">Parent question, based on which, this question's values will get populated</label>
+                        <select class="form-control form-control-sm relativeOptionsLogic">
+                            <option value="">Select Control ID</option>
+                        </select>
+                    </div>
+                `;
+            }
+            
+            fieldsHTML += `</div>`;
+            
+            additionalFields.innerHTML = fieldsHTML;
+            
+            if (['DROPDOWN'].includes(type)) {
+                setTimeout(() => {
+                    const optionsTypeSelect = additionalFields.querySelector('.optionsType');
+                    if (optionsTypeSelect) {
+                        toggleParentQuestionField(controlCard, optionsTypeSelect.value);
+                        
+                        optionsTypeSelect.addEventListener('change', function() {
+                            toggleParentQuestionField(controlCard, this.value);
+                        });
+                    }
+                }, 50);
+            }
+        }
+        
+        // Options Type Change
+        else if (event.target.classList.contains('optionsType')) {
+            const controlCard = event.target.closest('.control-card');
+            const additionalFields = controlCard.querySelector('.additionalFields');
+            const staticOptions = additionalFields.querySelector('.staticOptions');
+            const dynamicOptions = additionalFields.querySelectorAll('.dynamicOptions');
+            
+            if (event.target.value === 'static') {
+                staticOptions.style.display = 'block';
+                dynamicOptions.forEach(el => el.style.display = 'none');
+                toggleParentQuestionField(controlCard, 'static');
+            } else {
+                staticOptions.style.display = 'none';
+                dynamicOptions.forEach(el => el.style.display = 'block');
+                toggleParentQuestionField(controlCard, 'dynamic');
+            }
+        }
+    });
+
+    function toggleParentQuestionField(controlCard, optionsType) {
+        const parentQuestionDiv = controlCard.querySelector('.dynamic-parent-question');
+        if (parentQuestionDiv) {
+            const type = controlCard.querySelector('.controlType').value;
+            if (type === 'DROPDOWN' && optionsType === 'dynamic') {
+                parentQuestionDiv.style.display = 'block';
+            } else {
+                parentQuestionDiv.style.display = 'none';
+            }
+        }
+    }
+
+    // Input validation
+    document.addEventListener('input', validateInput, true);
+    document.addEventListener('blur', validateInput, true);
+
+    function validateInput(event) {
+        const target = event.target;
+        if (!target || !target.classList) return;
+
+        const shouldValidate = target.classList.contains('propertiesLabel') ||
+                             target.classList.contains('sectionTitle') ||
+                             target.classList.contains('optionValue') ||
+                             target.classList.contains('formName');
+
+        if (shouldValidate) {
+            const originalValue = target.value;
+            const sanitizedValue = sanitizeInput(originalValue);
+
+            if (originalValue !== sanitizedValue) {
+                target.value = sanitizedValue;
+                showWarningTooltip(target, "Only letters, numbers, spaces, underscore, dash, and question mark are allowed.");
+            }
+        }
+    }
+
+    function sanitizeInput(value) {
+        return value.replace(/[^a-zA-Z0-9? _-]/g, '');
+    }
+
+    function showWarningTooltip(element, message) {
+        const existingTooltip = document.querySelector('.sanitize-warning');
+        if (existingTooltip) {
+            existingTooltip.remove();
+        }
+        
+        const tooltip = document.createElement('div');
+        tooltip.className = 'sanitize-warning alert alert-warning alert-dismissible fade show position-fixed';
+        tooltip.style.cssText = 'top: 10px; right: 10px; z-index: 9999; max-width: 300px;';
+        tooltip.innerHTML = `
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.body.appendChild(tooltip);
+        
+        setTimeout(() => {
+            if (tooltip.parentElement) {
+                tooltip.remove();
+            }
+        }, 3000);
+    }
+
+    // Date duration handling
+    function updateDuration(dirSel, unitSel, valInput, targetInput) {
+        const dir = dirSel?.value;
+        const unit = unitSel?.value;
+        const val = valInput?.value;
+        
+        if (!val || !unit || !dir) {
+            targetInput.value = '';
+            return;
+        }
+        
+        const sign = dir === 'past' ? '-' : '';
+        targetInput.value = `${sign}${val}${unit}`;
+    }
+
+    // Access checkbox handling
+    document.addEventListener('change', (event) => {
+        if (event.target.classList.contains('fieldValidationsDbTable')) {
+            const controlCard = event.target.closest('.control-card');
+            const accessInput = controlCard.querySelector('.fieldValidationsAccess');
+            const dbTableValue = event.target.value;
+            accessInput.value = dbTableValue;
+        }
+        
+        if (event.target.classList.contains('useAccess')) {
+            const controlCard = event.target.closest('.control-card');
+            const accessInput = controlCard.querySelector('.fieldValidationsAccess');
+            const dbTableSelect = controlCard.querySelector('.fieldValidationsDbTable');
+            
+            if (event.target.checked) {
+                accessInput.value = dbTableSelect.value;
+            } else {
+                accessInput.value = '';
+            }
+        }
+    });
+
+    // Generate JSON
+    document.getElementById('generateJsonBtn').addEventListener('click', generateJson);
+    document.getElementById('exportJsonBtn').addEventListener('click', exportJson);
+
+    function generateJson() {
+        const btn = document.getElementById('generateJsonBtn');
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fas fa-code me-2"></i> Generating...`;
+
+        const formSchema = {
+            form_name: document.getElementById('formName').value || "Untitled Form",
+            acronym: document.getElementById('acronym').value || "FORM",
+            version: document.getElementById('version').value || "1",
+            data: []
+        };
+        
+        function parseSection(sectionElement) {
+            const sectionData = {
+                type: "SECTION",
+                title: sectionElement.querySelector('.sectionTitle').value || "Untitled Section",
+                isActive: sectionElement.querySelector('.sectionIsActive').checked,
+                acronym: sectionElement.querySelector('.sectionAcronym').value || "SEC",
+                children: []
+            };
+            
+            const childrenContainer = sectionElement.querySelector('.childrenContainer');
+            childrenContainer.querySelectorAll(':scope > [data-type]').forEach(childElement => {
+                if (childElement.dataset.type === 'SECTION') {
+                    sectionData.children.push(parseSection(childElement));
+                } else if (childElement.dataset.type === 'CONTROL') {
+                    sectionData.children.push(parseControl(childElement));
+                }
+            });
+            
+            return sectionData;
+        }
+        
+        function parseControl(controlElement) {
+            const label = controlElement.querySelector('.propertiesLabel')?.value || '';
+            
+            const controlData = {
+                id: controlElement.querySelector('.fieldId')?.value || `control_${Date.now()}`,
+                type: controlElement.querySelector('.controlType').value || "TEXT",
+                properties: {
+                    label: label,
+                    placeholder: label,
+                    qNumber: controlElement.querySelector('.propertiesQNumber')?.value || ''
+                },
+                fieldValidations: {
+                    qcRequired: false,
+                    valueRequired: controlElement.querySelector('.fieldValidationsValueRequired')?.checked || true
+                },
+                viewHome: controlElement.querySelector('.viewHome')?.checked ?? false,
+                filterHome: controlElement.querySelector('.filterHome')?.checked ?? false,
+                primaryView: controlElement.querySelector('.primaryView')?.checked ?? false,
+                secondaryView: false,
+                homeLabel: label
+            };
+            
+            const skipLogicText = controlElement.querySelector('.skipLogic')?.value;
+            if (skipLogicText) {
+                try {
+                    controlData.skipLogic = JSON.parse(skipLogicText);
+                } catch (e) {
+                    console.error('Invalid Skip Logic JSON:', e);
+                }
+            }
+            
+            const relativeOptionsLogic = controlElement.querySelector('.relativeOptionsLogic')?.value;
+            if (relativeOptionsLogic) controlData.relativeOptionsLogic = relativeOptionsLogic;
+            
+            const type = controlData.type;
+            if (['TEXT', 'TEXT_AREA'].includes(type)) {
+                controlData.fieldValidations.maxChar = controlElement.querySelector('.fieldValidationsMaxChar')?.value ? 
+                    Number(controlElement.querySelector('.fieldValidationsMaxChar').value) : "";
+                controlData.fieldValidations.minChar = controlElement.querySelector('.fieldValidationsMinChar')?.value ? 
+                    Number(controlElement.querySelector('.fieldValidationsMinChar').value) : "";
+            } else if (['DROPDOWN', 'RADIO'].includes(type)) {
+                controlData.fieldValidations.multiSelect = controlElement.querySelector('.fieldValidationsMultiSelect')?.checked ?? false;
+                const optionsType = controlElement.querySelector('.optionsType')?.value;
+                
+                if (optionsType === 'static') {
+                    controlData.options = [];
+                    controlElement.querySelectorAll('.option').forEach(option => {
+                        const value = option.querySelector('.optionValue').value;
+                        const optionIdInput = option.querySelector('.optionId');
+                        const controlId = controlElement.querySelector('.fieldId')?.value;
+                        
+                        const optionId = optionIdInput?.value || generateOptionId(value, controlId || '');
+                        controlData.options.push({
+                            id: optionId,
+                            value: value
+                        });
+                    });
+                } else if (optionsType === 'dynamic') {
+                    controlData.fieldValidations.dbTable = controlElement.querySelector('.fieldValidationsDbTable')?.value || "";
+                    
+                    const accessCheckbox = controlElement.querySelector('.useAccess');
+                    const accessValue = controlElement.querySelector('.fieldValidationsAccess')?.value;
+                    if (accessCheckbox?.checked && accessValue) {
+                        controlData.fieldValidations.access = accessValue;
+                    }
+                }
+                
+                if (type === 'DROPDOWN') {
+                    controlData.isSelectAll = controlElement.querySelector('.isSelectAll')?.checked ?? false;
+                    controlData.isSelectNone = controlElement.querySelector('.isSelectNone')?.checked ?? false;
+                }
+            } else if (type === 'DATE') {
+                controlData.fieldValidations.maxDate = controlElement.querySelector('.fieldValidationsMaxDate')?.value || "";
+                controlData.fieldValidations.minDate = controlElement.querySelector('.fieldValidationsMinDate')?.value || "";
+            } else if (type === 'NUMBERS') {
+                controlData.fieldValidations.maxLimit = controlElement.querySelector('.fieldValidationsMaxLimit')?.value ? 
+                    Number(controlElement.querySelector('.fieldValidationsMaxLimit').value) : "";
+                controlData.fieldValidations.minLimit = controlElement.querySelector('.fieldValidationsMinLimit')?.value ? 
+                    Number(controlElement.querySelector('.fieldValidationsMinLimit').value) : "";
+            } else if (type === 'UPLOAD_IMAGE') {
+                controlData.primaryImage = controlElement.querySelector('.primaryImage')?.checked ?? false;
+            }
+            
+            return controlData;
+        }
+        
+        document.querySelectorAll('#sectionsContainer > .section').forEach(sectionElement => {
+            formSchema.data.push(parseSection(sectionElement));
+        });
+        
+        const jsonOutput = document.getElementById('jsonOutput');
+        jsonOutput.textContent = JSON.stringify(formSchema, null, 2);
+        
+        // Populate hidden form for submission
+        document.getElementById('hidden_form_name').value = formSchema.form_name;
+        document.getElementById('hidden_acronym').value = formSchema.acronym;
+        document.getElementById('hidden_version').value = formSchema.version;
+        document.getElementById('hidden_json_schema').value = JSON.stringify(formSchema);
+        
+        // Submit the form
+        document.getElementById('json_schema_submit_form').submit();
+        
+        document.getElementById('exportJsonBtn').disabled = false;
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fas fa-code me-2"></i>Generate Form`;
+    }
+
+    function exportJson() {
+        const jsonOutput = document.getElementById('jsonOutput').textContent;
+        const blob = new Blob([jsonOutput], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'form-schema.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    function checkEmptyState() {
+        const sectionsContainer = document.getElementById('sectionsContainer');
+        if (sectionsContainer.children.length === 0) {
+            sectionsContainer.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-inbox"></i>
+                    <h5>No Sections Added</h5>
+                    <p>Drag elements from the toolbox or click the button below to get started</p>
+                    <button class="btn btn-primary btn-sm mt-2" id="addFirstSectionBtn">
+                        <i class="fas fa-plus me-2"></i>Add First Section
+                    </button>
+                </div>
+            `;
+            document.getElementById('addFirstSectionBtn').addEventListener('click', addNewSection);
+        }
+    }
+
+    function updateControlIdsDropdowns() {
+        const allControls = [];
+        
+        document.querySelectorAll('.control-card').forEach(control => {
+            const labelInput = control.querySelector('.propertiesLabel');
+            if (labelInput && labelInput.value.trim()) {
+                const label = labelInput.value.trim();
+                const fieldIdInput = control.querySelector('.fieldId');
+                const id = fieldIdInput?.value || generateId(label);
+                
+                allControls.push({ 
+                    id: id, 
+                    label: label 
+                });
+            }
+        });
+        
+        document.querySelectorAll('.relativeOptionsLogic').forEach(dropdown => {
+            const currentValue = dropdown.value;
+            dropdown.innerHTML = '<option value="">Select Control ID</option>';
+            
+            allControls.forEach(control => {
+                const option = document.createElement('option');
+                option.value = control.id;
+                option.textContent = `${control.label} (${control.id})`;
+                
+                if (control.id === currentValue) {
+                    option.selected = true;
+                }
+                
+                dropdown.appendChild(option);
+            });
+        });
+    }
+
+    document.addEventListener('input', (event) => {
+        if (event.target.classList.contains('propertiesLabel')) {
+            const controlCard = event.target.closest('.control-card');
+            const fieldIdInput = controlCard.querySelector('.fieldId');
+            const label = event.target.value.trim();
+            
+            const oldId = fieldIdInput.value;
+            if (oldId) {
+                removeFieldId(oldId);
+            }
+            
+            const newId = generateId(label);
+            fieldIdInput.value = newId;
+            
+            clearTimeout(window.labelUpdateTimeout);
+            window.labelUpdateTimeout = setTimeout(updateControlIdsDropdowns, 500);
+        }
+        
+        if (event.target.classList.contains('optionValue')) {
+            const optionDiv = event.target.closest('.option');
+            const optionIdInput = optionDiv.querySelector('.optionId');
+            const value = event.target.value;
+            
+            const controlCard = event.target.closest('.control-card');
+            const controlId = controlCard.querySelector('.fieldId')?.value;
+            
+            if (value && controlId) {
+                optionIdInput.value = generateOptionId(value, controlId);
+            }
+        }
+    });
+
+    // Tooltip initialization
+    document.addEventListener("DOMContentLoaded", function() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    });
+
+    // Auto-save functionality
+    let autoSaveTimer = null;
+    let lastSavedData = null;
+    let isAutoSaving = false;
+    let autoSaveEnabled = true;
+    const AUTO_SAVE_INTERVAL = 30000;
+
+    function collectFormDataForAutoSave() {
+        return {
+            formName: document.getElementById('formName').value,
+            acronym: document.getElementById('acronym').value,
+            version: document.getElementById('version').value,
+            checks: {
+                have_qc: document.getElementById('have_qc').checked,
+                have_validation: document.getElementById('have_validation').checked,
+                is_web: document.getElementById('is_web').checked,
+                is_app: document.getElementById('is_app').checked
+            },
+            sections: collectSectionsData()
+        };
+    }
+
+    function collectSectionsData() {
+        const sections = [];
+        document.querySelectorAll('#sectionsContainer > .section').forEach(sectionElement => {
+            sections.push(parseSectionForAutoSave(sectionElement));
+        });
+        return sections;
+    }
+
+    function parseSectionForAutoSave(sectionElement) {
+        const sectionData = {
+            title: sectionElement.querySelector('.sectionTitle').value,
+            acronym: sectionElement.querySelector('.sectionAcronym').value,
+            isActive: sectionElement.querySelector('.sectionIsActive').checked,
+            children: []
+        };
+
+        const childrenContainer = sectionElement.querySelector('.childrenContainer');
+        childrenContainer.querySelectorAll(':scope > [data-type]').forEach(childElement => {
+            if (childElement.dataset.type === 'SECTION') {
+                sectionData.children.push(parseSectionForAutoSave(childElement));
+            } else if (childElement.dataset.type === 'CONTROL') {
+                sectionData.children.push(parseControlForAutoSave(childElement));
+            }
+        });
+
+        return sectionData;
+    }
+
+    async function autoSaveDraft() {
+        if (!autoSaveEnabled || isAutoSaving) return;
+        
+        const currentData = collectFormDataForAutoSave();
+        const currentDataString = JSON.stringify(currentData);
+        
+        if (lastSavedData === currentDataString) return;
+        
+        isAutoSaving = true;
+        
+        try {
+            const response = await fetch(urls.autoSaveDraft, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
+                },
+                body: JSON.stringify({
+                    form_name: document.getElementById('formName').value || 'Auto-saved Survey',
+                    acronym: document.getElementById('acronym').value,
+                    version: document.getElementById('version').value,
+                    form_schema: currentData,
+                    is_web: document.getElementById('is_web').checked ? 1 : 0,
+                    is_app: document.getElementById('is_app').checked ? 1 : 0,
+                    have_qc: document.getElementById('have_qc').checked ? 1 : 0,
+                    have_validation: document.getElementById('have_validation').checked ? 1 : 0
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                lastSavedData = currentDataString;
+                showAutoSaveNotification('Auto-saved successfully', 'success');
+            }
+        } catch (error) {
+            console.error('Auto-save failed:', error);
+            showAutoSaveNotification('Auto-save failed', 'danger');
+        } finally {
+            isAutoSaving = false;
+        }
+    }
+
+    function showAutoSaveNotification(message, type = 'info') {
+        const existingNotification = document.querySelector('.auto-save-notification');
+        if (existingNotification) {
+            existingNotification.remove();
+        }
+        
+        const notification = document.createElement('div');
+        notification.className = `auto-save-notification alert alert-${type} alert-dismissible fade show position-fixed`;
+        notification.style.cssText = 'bottom: 20px; right: 20px; z-index: 9999; max-width: 300px;';
+        notification.innerHTML = `
+            <i class="fas fa-save me-2"></i>
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.remove();
+            }
+        }, 3000);
+    }
+
+    function startAutoSaveTimer() {
+        if (autoSaveTimer) clearInterval(autoSaveTimer);
+        
+        autoSaveTimer = setInterval(() => {
+            if (document.getElementById('formName').value.trim()) {
+                autoSaveDraft();
+            }
+        }, AUTO_SAVE_INTERVAL);
+    }
+
+    function stopAutoSaveTimer() {
+        if (autoSaveTimer) {
+            clearInterval(autoSaveTimer);
+            autoSaveTimer = null;
+        }
+    }
+
+    async function checkAutoSaveDraft() {
+        try {
+            const response = await fetch(urls.getAutoSaveDraft);
+            const data = await response.json();
+            
+            if (data.success && data.exists) {
+                showAutoSaveRestorePrompt(data.draft);
+            }
+        } catch (error) {
+            console.error('Error checking auto-save:', error);
+        }
+    }
+
+    function showAutoSaveRestorePrompt(draftData) {
+        document.getElementById('autoSaveTime').textContent = 
+            new Date(draftData.updated_at).toLocaleString();
+        
+        document.getElementById('restoreAutoSaveBtn').addEventListener('click', function() {
+            restoreFormFromDraft(draftData);
+            autoSaveRestoreModal.hide();
+            showAlert('Auto-saved draft restored!', 'success');
+        });
+        
+        document.getElementById('discardAutoSaveBtn').addEventListener('click', function() {
+            deleteAutoSaveDraft();
+            autoSaveRestoreModal.hide();
+        });
+        
+        autoSaveRestoreModal.show();
+    }
+
+    async function deleteAutoSaveDraft() {
+        try {
+            const response = await fetch(urls.deleteAutoSaveDraft, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                console.log('Auto-save draft deleted');
+            }
+        } catch (error) {
+            console.error('Error deleting auto-save draft:', error);
+        }
+    }
+
+    function setupAutoSaveListeners() {
+        document.getElementById('formName').addEventListener('input', debounce(() => {
+            if (document.getElementById('formName').value.trim()) {
+                autoSaveDraft();
+            }
+        }, 2000));
+        
+        document.querySelectorAll('.action-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', debounce(autoSaveDraft, 1000));
+        });
+        
+        document.addEventListener('input', debounce(() => {
+            if (document.getElementById('formName').value.trim()) {
+                autoSaveDraft();
+            }
+        }, 5000));
+    }
+
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    // Draft Management Functions
+    document.getElementById('saveDraftBtn').addEventListener('click', function() {
+        saveDraftModal.show();
+    });
+
+    document.getElementById('confirmSaveDraftBtn').addEventListener('click', function() {
+        const draftName = document.getElementById('draftName').value.trim();
+        if (!draftName) {
+            alert('Please enter a draft name');
+            return;
+        }
+
+        saveDraft(draftName);
+    });
+
+    document.getElementById('loadDraftBtn').addEventListener('click', function() {
+        loadDraftsList();
+        loadDraftModal.show();
+    });
+
+    function saveDraft(draftName) {
+        const formData = collectFormData();
+        
+        const saveBtn = document.getElementById('confirmSaveDraftBtn');
+        const originalText = saveBtn.innerHTML;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
+        saveBtn.disabled = true;
+
+        fetch(urls.saveDraft, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken
+            },
+            body: JSON.stringify({
+                draft_name: draftName,
+                form_name: document.getElementById('formName').value,
+                acronym: document.getElementById('acronym').value,
+                version: document.getElementById('version').value,
+                form_schema: formData,
+                is_web: document.getElementById('is_web').checked ? 1 : 0,
+                is_app: document.getElementById('is_app').checked ? 1 : 0,
+                have_qc: document.getElementById('have_qc').checked ? 1 : 0,
+                have_validation: document.getElementById('have_validation').checked ? 1 : 0
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                saveDraftModal.hide();
+                document.getElementById('draftName').value = '';
+                showAlert('Draft saved successfully!', 'success');
+            } else {
+                throw new Error(data.message || 'Failed to save draft');
+            }
+        })
+        .catch(error => {
+            console.error('Error saving draft:', error);
+            showAlert('Error saving draft: ' + error.message, 'danger');
+        })
+        .finally(() => {
+            saveBtn.innerHTML = originalText;
+            saveBtn.disabled = false;
+        });
+    }
+
+    function collectFormData() {
+        const formData = {
+            formName: document.getElementById('formName').value,
+            acronym: document.getElementById('acronym').value,
+            version: document.getElementById('version').value,
+            checks: {
+                have_qc: document.getElementById('have_qc').checked,
+                have_validation: document.getElementById('have_validation').checked,
+                is_web: document.getElementById('is_web').checked,
+                is_app: document.getElementById('is_app').checked
+            },
+            sections: []
+        };
+
+        document.querySelectorAll('#sectionsContainer > .section').forEach(sectionElement => {
+            formData.sections.push(parseSectionForDraft(sectionElement));
+        });
+
+        return formData;
+    }
+
+    function parseSectionForDraft(sectionElement) {
+        const sectionData = {
+            title: sectionElement.querySelector('.sectionTitle').value,
+            acronym: sectionElement.querySelector('.sectionAcronym').value,
+            isActive: sectionElement.querySelector('.sectionIsActive').checked,
+            children: []
+        };
+
+        const childrenContainer = sectionElement.querySelector('.childrenContainer');
+        childrenContainer.querySelectorAll(':scope > [data-type]').forEach(childElement => {
+            if (childElement.dataset.type === 'SECTION') {
+                sectionData.children.push(parseSectionForDraft(childElement));
+            } else if (childElement.dataset.type === 'CONTROL') {
+                sectionData.children.push(parseControlForDraft(childElement));
+            }
+        });
+
+        return sectionData;
+    }
+
+    function parseControlForDraft(controlElement) {
+        const controlData = {
+            type: controlElement.querySelector('.controlType').value,
+            fieldId: controlElement.querySelector('.fieldId').value,
+            properties: {
+                label: controlElement.querySelector('.propertiesLabel')?.value || '',
+                qNumber: controlElement.querySelector('.propertiesQNumber')?.value || ''
+            },
+            fieldValidations: {
+                valueRequired: controlElement.querySelector('.fieldValidationsValueRequired')?.checked || true
+            },
+            viewHome: controlElement.querySelector('.viewHome')?.checked || false,
+            filterHome: controlElement.querySelector('.filterHome')?.checked || false,
+            primaryView: controlElement.querySelector('.primaryView')?.checked || false
+        };
+
+        const type = controlData.type;
+        if (['TEXT', 'TEXT_AREA'].includes(type)) {
+            controlData.fieldValidations.maxChar = controlElement.querySelector('.fieldValidationsMaxChar')?.value || '';
+            controlData.fieldValidations.minChar = controlElement.querySelector('.fieldValidationsMinChar')?.value || '';
+        } else if (['DROPDOWN', 'RADIO'].includes(type)) {
+            controlData.fieldValidations.multiSelect = controlElement.querySelector('.fieldValidationsMultiSelect')?.checked || false;
+            
+            const optionsType = controlElement.querySelector('.optionsType')?.value;
+            if (optionsType === 'static') {
+                controlData.options = [];
+                controlElement.querySelectorAll('.option').forEach(option => {
+                    const value = option.querySelector('.optionValue').value;
+                    const optionId = option.querySelector('.optionId').value;
+                    controlData.options.push({
+                        id: optionId || generateId(value),
+                        value: value
+                    });
+                });
+            } else if (optionsType === 'dynamic') {
+                controlData.fieldValidations.dbTable = controlElement.querySelector('.fieldValidationsDbTable')?.value || '';
+                controlData.fieldValidations.access = controlElement.querySelector('.fieldValidationsAccess')?.value || '';
+            }
+            
+            if (type === 'DROPDOWN') {
+                controlData.isSelectAll = controlElement.querySelector('.isSelectAll')?.checked || false;
+                controlData.isSelectNone = controlElement.querySelector('.isSelectNone')?.checked || false;
+            }
+        } else if (type === 'DATE') {
+            controlData.fieldValidations.maxDate = controlElement.querySelector('.fieldValidationsMaxDate')?.value || '';
+            controlData.fieldValidations.minDate = controlElement.querySelector('.fieldValidationsMinDate')?.value || '';
+        } else if (type === 'NUMBERS') {
+            controlData.fieldValidations.maxLimit = controlElement.querySelector('.fieldValidationsMaxLimit')?.value || '';
+            controlData.fieldValidations.minLimit = controlElement.querySelector('.fieldValidationsMinLimit')?.value || '';
+        } else if (type === 'UPLOAD_IMAGE') {
+            controlData.primaryImage = controlElement.querySelector('.primaryImage')?.checked || false;
+        }
+
+        const skipLogic = controlElement.querySelector('.skipLogic')?.value;
+        if (skipLogic && skipLogic.trim()) {
+            try {
+                controlData.skipLogic = JSON.parse(skipLogic);
+            } catch (e) {
+                console.error('Invalid skip logic:', e);
+            }
+        }
+
+        const relativeOptionsLogic = controlElement.querySelector('.relativeOptionsLogic')?.value;
+        if (relativeOptionsLogic) {
+            controlData.relativeOptionsLogic = relativeOptionsLogic;
+        }
+
+        return controlData;
+    }
+
+    function loadDraftsList() {
+        const draftsList = document.getElementById('draftsList');
+        draftsList.innerHTML = '<div class="text-center py-3"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Loading drafts...</p></div>';
+
+        fetch(urls.listDrafts)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.drafts.length > 0) {
+                    let html = '';
+                    data.drafts.forEach(draft => {
+                        const created = new Date(draft.created_at).toLocaleString();
+                        const updated = new Date(draft.updated_at).toLocaleString();
+                        
+                        html += `
+                            <div class="draft-item card mb-2">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="card-title">${draft.draft_name}</h6>
+                                            <p class="card-text mb-1">
+                                                <small class="text-muted">Form: ${draft.form_name}</small>
+                                            </p>
+                                            <p class="card-text">
+                                                <small class="text-muted">Last updated: ${updated}</small>
+                                            </p>
+                                        </div>
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm btn-primary load-draft" data-draft-id="${draft.id}">
+                                                <i class="fas fa-folder-open me-1"></i>Load
+                                            </button>
+                                            <button class="btn btn-sm btn-danger delete-draft" data-draft-id="${draft.id}">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    draftsList.innerHTML = html;
+
+                    document.querySelectorAll('.load-draft').forEach(btn => {
+                        btn.addEventListener('click', function() {
+                            const draftId = this.getAttribute('data-draft-id');
+                            loadDraft(draftId);
+                        });
+                    });
+
+                    document.querySelectorAll('.delete-draft').forEach(btn => {
+                        btn.addEventListener('click', function() {
+                            const draftId = this.getAttribute('data-draft-id');
+                            deleteDraft(draftId);
+                        });
+                    });
+                } else {
+                    draftsList.innerHTML = '<div class="text-center py-3"><p>No drafts found.</p></div>';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading drafts:', error);
+                draftsList.innerHTML = '<div class="text-center py-3 text-danger"><p>Error loading drafts.</p></div>';
+            });
+    }
+
+    function loadDraft(draftId) {
+        fetch(urls.loadDraft(draftId))
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    restoreFormFromDraft(data.draft);
+                    loadDraftModal.hide();
+                    showAlert('Draft loaded successfully!', 'success');
+                } else {
+                    throw new Error(data.message || 'Failed to load draft');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading draft:', error);
+                showAlert('Error loading draft: ' + error.message, 'danger');
+            });
+    }
+
+    function deleteDraft(draftId) {
+        if (!confirm('Are you sure you want to delete this draft?')) {
+            return;
+        }
+
+        fetch(urls.deleteDraft(draftId), {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('Draft deleted successfully!', 'success');
+                loadDraftsList();
+            } else {
+                throw new Error(data.message || 'Failed to delete draft');
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting draft:', error);
+            showAlert('Error deleting draft: ' + error.message, 'danger');
+        });
+    }
+
+    function restoreFormFromDraft(draft) {
+        console.log('Restoring draft:', draft);
+        
+        document.getElementById('sectionsContainer').innerHTML = '';
+        
+        document.getElementById('formName').value = draft.form_name || '';
+        document.getElementById('acronym').value = draft.acronym || '';
+        document.getElementById('version').value = draft.version || '1';
+
+        document.getElementById('have_qc').checked = draft.have_qc || draft.checks?.have_qc;
+        document.getElementById('have_validation').checked = draft.have_validation || draft.checks?.have_validation;
+        document.getElementById('is_web').checked = draft.is_web || draft.checks?.is_web;
+        document.getElementById('is_app').checked = draft.is_app || draft.checks?.is_app;
+
+        document.querySelectorAll('.action-checkbox').forEach(checkbox => {
+            checkbox.dispatchEvent(new Event('change'));
+        });
+
+        usedFieldIds.clear();
+        usedAcronyms.clear();
+
+        usedAcronyms.add(draft.acronym);
+
+        const formSchema = draft.form_schema || draft;
+        
+        if (formSchema.sections && formSchema.sections.length > 0) {
+            formSchema.sections.forEach(sectionData => {
+                restoreSection(sectionData, document.getElementById('sectionsContainer'));
+            });
+        } else if (formSchema.data && formSchema.data.length > 0) {
+            formSchema.data.forEach(sectionData => {
+                restoreSectionFromSchema(sectionData, document.getElementById('sectionsContainer'));
+            });
+        } else {
+            checkEmptyState();
+        }
+
+        setTimeout(() => {
+            initSortable();
+            updateControlIdsDropdowns();
+            checkEmptyState();
+        }, 1000);
+    }
+
+    function restoreSection(sectionData, container) {
+        const sectionId = 'section_' + Date.now();
+        const sectionTemplate = `
+            <div class="section card mb-2" data-id="${sectionId}" data-type="SECTION">
+                <div class="card-header py-2 d-flex justify-content-between align-items-center ${container.id === 'sectionsContainer' ? 'bg-secondary text-light' : ''}">
+                    <div>
+                        <span class="drag-handle"><i class="fas fa-grip-vertical"></i></span>
+                        <span class="section-title">${sectionData.title || 'Untitled Section'}</span>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-sm btn-outline-primary addSubsectionBtn ${container.id === 'sectionsContainer' ? 'text-light' : ''}">
+                            <i class="fas fa-folder-plus me-1"></i>Sub-section
+                        </button>
+                        <button type="button" class="btn btn-sm btn-danger removeSectionBtn ms-1">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body py-2">
+                    <div class="row g-2">
+                        <div class="col-md-8">
+                            <div class="mb-2">
+                                <label class="form-label">Title <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm sectionTitle" value="${sectionData.title || 'Untitled Section'}" required>
+                                <input type="hidden" class="form-check-input sectionIsActive" value="${sectionData.isActive ? 1 : 0}">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <input type="hidden" class="sectionAcronym" value="${sectionData.acronym || 'SEC'}" required>
+                    
+                    <div class="childrenContainer mb-2">
+                        ${sectionData.children && sectionData.children.length > 0 ? '' : `
+                            <div class="empty-state small">
+                                <i class="fas fa-inbox"></i>
+                                <p>No elements in this section</p>
+                                <button class="btn btn-sm btn-outline-primary addControlBtn">
+                                    <i class="fas fa-plus me-1"></i>Add Question
+                                </button>
+                            </div>
+                        `}
+                    </div>
+                    
+                    <div class="d-flex justify-content-end">
+                        <button type="button" class="btn btn-sm btn-primary addControlBtn">
+                            <i class="fas fa-plus-circle me-1"></i>Add Question
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        container.insertAdjacentHTML('beforeend', sectionTemplate);
+        const sectionElement = container.lastElementChild;
+        const childrenContainer = sectionElement.querySelector('.childrenContainer');
+
+        usedAcronyms.add(sectionData.acronym);
+
+        if (sectionData.children && sectionData.children.length > 0) {
+            if (childrenContainer.querySelector('.empty-state')) {
+                childrenContainer.innerHTML = '';
+            }
+
+            sectionData.children.forEach(childData => {
+                if (childData.type === 'SECTION') {
+                    restoreSection(childData, childrenContainer);
+                } else {
+                    restoreControl(childData, childrenContainer);
+                }
+            });
+        }
+
+        const titleInput = sectionElement.querySelector('.sectionTitle');
+        titleInput.addEventListener('input', function() {
+            updateSectionAcronym(sectionElement);
+        });
+    }
+
+    function restoreSectionFromSchema(sectionData, container) {
+        const sectionId = 'section_' + Date.now();
+        const sectionTemplate = `
+            <div class="section card mb-2" data-id="${sectionId}" data-type="SECTION">
+                <div class="card-header py-2 d-flex justify-content-between align-items-center ${container.id === 'sectionsContainer' ? 'bg-secondary text-light' : ''}">
+                    <div>
+                        <span class="drag-handle"><i class="fas fa-grip-vertical"></i></span>
+                        <span class="section-title">${sectionData.title || 'Untitled Section'}</span>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-sm btn-outline-primary addSubsectionBtn ${container.id === 'sectionsContainer' ? 'text-light' : ''}">
+                            <i class="fas fa-folder-plus me-1"></i>Sub-section
+                        </button>
+                        <button type="button" class="btn btn-sm btn-danger removeSectionBtn ms-1">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body py-2">
+                    <div class="row g-2">
+                        <div class="col-md-8">
+                            <div class="mb-2">
+                                <label class="form-label">Title <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control form-control-sm sectionTitle" value="${sectionData.title || 'Untitled Section'}" required>
+                                <input type="hidden" class="form-check-input sectionIsActive" value="${sectionData.isActive ? 1 : 0}">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <input type="hidden" class="sectionAcronym" value="${sectionData.acronym || 'SEC'}" required>
+                    
+                    <div class="childrenContainer mb-2">
+                        ${sectionData.children && sectionData.children.length > 0 ? '' : `
+                            <div class="empty-state small">
+                                <i class="fas fa-inbox"></i>
+                                <p>No elements in this section</p>
+                                <button class="btn btn-sm btn-outline-primary addControlBtn">
+                                    <i class="fas fa-plus me-1"></i>Add Question
+                                </button>
+                            </div>
+                        `}
+                    </div>
+                    
+                    <div class="d-flex justify-content-end">
+                        <button type="button" class="btn btn-sm btn-primary addControlBtn">
+                            <i class="fas fa-plus-circle me-1"></i>Add Question
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        container.insertAdjacentHTML('beforeend', sectionTemplate);
+        const sectionElement = container.lastElementChild;
+        const childrenContainer = sectionElement.querySelector('.childrenContainer');
+
+        usedAcronyms.add(sectionData.acronym);
+
+        if (sectionData.children && sectionData.children.length > 0) {
+            if (childrenContainer.querySelector('.empty-state')) {
+                childrenContainer.innerHTML = '';
+            }
+
+            sectionData.children.forEach(childData => {
+                if (childData.type === 'SECTION') {
+                    restoreSectionFromSchema(childData, childrenContainer);
+                } else {
+                    restoreControlFromSchema(childData, childrenContainer);
+                }
+            });
+        }
+
+        const titleInput = sectionElement.querySelector('.sectionTitle');
+        titleInput.addEventListener('input', function() {
+            updateSectionAcronym(sectionElement);
+        });
+    }
+
+    function restoreControl(controlData, container) {
+        const controlId = 'control_' + Date.now();
+        const controlTemplate = `
+            <div class="control-card card mb-2" data-id="${controlId}" data-type="CONTROL">
+                <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="drag-handle"><i class="fas fa-grip-vertical"></i></span>
+                        <span>${controlData.properties?.label || 'New Control'}</span>
+                        <span class="control-type-badge">${controlData.type || 'TEXT'}</span>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-danger removeControlBtn">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+                <div class="card-body py-2">
+                    <div class="row g-2">
+                        <div class="col-md-12">
+                            <div class="mb-2">
+                                <label class="form-label">Type</label>
+                                <select class="form-control form-control-sm controlType" required>
+                                    <option value="">Select Type</option>
+                                    <option value="TEXT" ${controlData.type === 'TEXT' ? 'selected' : ''}>Text Field (Single line text)</option>
+                                    <option value="DROPDOWN" ${controlData.type === 'DROPDOWN' ? 'selected' : ''}>Dropdown</option>
+                                    <option value="RADIO" ${controlData.type === 'RADIO' ? 'selected' : ''}>Radio Buttons</option>
+                                    <option value="TEXT_AREA" ${controlData.type === 'TEXT_AREA' ? 'selected' : ''}>Text Area (Multi line text)</option>
+                                    <option value="UPLOAD_IMAGE" ${controlData.type === 'UPLOAD_IMAGE' ? 'selected' : ''}>Image Upload</option>
+                                    <option value="DATE" ${controlData.type === 'DATE' ? 'selected' : ''}>Date Picker</option>
+                                    <option value="NUMBERS" ${controlData.type === 'NUMBERS' ? 'selected' : ''}>Number Field</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <input type="hidden" class="fieldId" value="${controlData.fieldId || ''}">
+                    
+                    <div class="control-fields additionalFields">
+                        <div class="alert alert-info py-2">
+                            <i class="fas fa-info-circle me-2"></i>Select a control type to configure properties
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        container.insertAdjacentHTML('beforeend', controlTemplate);
+        const controlElement = container.lastElementChild;
+
+        if (controlData.fieldId) {
+            usedFieldIds.add(controlData.fieldId);
+        }
+
+        setTimeout(() => {
+            const typeSelect = controlElement.querySelector('.controlType');
+            if (typeSelect && controlData.type) {
+                typeSelect.value = controlData.type;
+                typeSelect.dispatchEvent(new Event('change'));
+                
+                setTimeout(() => {
+                    setControlValues(controlElement, controlData);
+                }, 100);
+            }
+        }, 100);
+    }
+
+    function restoreControlFromSchema(controlData, container) {
+        const controlId = 'control_' + Date.now();
+        const controlTemplate = `
+            <div class="control-card card mb-2" data-id="${controlId}" data-type="CONTROL">
+                <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="drag-handle"><i class="fas fa-grip-vertical"></i></span>
+                        <span>${controlData.properties?.label || 'New Control'}</span>
+                        <span class="control-type-badge">${controlData.type || 'TEXT'}</span>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-danger removeControlBtn">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+                <div class="card-body py-2">
+                    <div class="row g-2">
+                        <div class="col-md-12">
+                            <div class="mb-2">
+                                <label class="form-label">Type</label>
+                                <select class="form-control form-control-sm controlType" required>
+                                    <option value="">Select Type</option>
+                                    <option value="TEXT" ${controlData.type === 'TEXT' ? 'selected' : ''}>Text Field (Single line text)</option>
+                                    <option value="DROPDOWN" ${controlData.type === 'DROPDOWN' ? 'selected' : ''}>Dropdown</option>
+                                    <option value="RADIO" ${controlData.type === 'RADIO' ? 'selected' : ''}>Radio Buttons</option>
+                                    <option value="TEXT_AREA" ${controlData.type === 'TEXT_AREA' ? 'selected' : ''}>Text Area (Multi line text)</option>
+                                    <option value="UPLOAD_IMAGE" ${controlData.type === 'UPLOAD_IMAGE' ? 'selected' : ''}>Image Upload</option>
+                                    <option value="DATE" ${controlData.type === 'DATE' ? 'selected' : ''}>Date Picker</option>
+                                    <option value="NUMBERS" ${controlData.type === 'NUMBERS' ? 'selected' : ''}>Number Field</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <input type="hidden" class="fieldId" value="${controlData.id || ''}">
+                    
+                    <div class="control-fields additionalFields">
+                        <div class="alert alert-info py-2">
+                            <i class="fas fa-info-circle me-2"></i>Select a control type to configure properties
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        container.insertAdjacentHTML('beforeend', controlTemplate);
+        const controlElement = container.lastElementChild;
+
+        if (controlData.id) {
+            usedFieldIds.add(controlData.id);
+        }
+
+        setTimeout(() => {
+            const typeSelect = controlElement.querySelector('.controlType');
+            if (typeSelect && controlData.type) {
+                typeSelect.value = controlData.type;
+                typeSelect.dispatchEvent(new Event('change'));
+                
+                setTimeout(() => {
+                    setControlValuesFromSchema(controlElement, controlData);
+                }, 100);
+            }
+        }, 100);
+    }
+
+    function setControlValues(controlElement, controlData) {
+        if (!controlElement || !controlData) return;
+
+        function safeSetValue(selector, value, isCheckbox = false, maxRetries = 5) {
+            let retries = 0;
+            
+            function trySetValue() {
+                const element = controlElement.querySelector(selector);
+                if (element) {
+                    if (isCheckbox) {
+                        element.checked = !!value;
+                    } else {
+                        element.value = value || '';
+                    }
+                    return true;
+                } else if (retries < maxRetries) {
+                    retries++;
+                    setTimeout(trySetValue, 200);
+                    return false;
+                }
+                return false;
+            }
+            
+            return trySetValue();
+        }
+
+        if (controlData.properties) {
+            safeSetValue('.propertiesLabel', controlData.properties.label);
+            safeSetValue('.propertiesQNumber', controlData.properties.qNumber);
+        }
+
+        if (controlData.fieldValidations) {
+            safeSetValue('.fieldValidationsValueRequired', controlData.fieldValidations.valueRequired, true);
+        }
+
+        safeSetValue('.viewHome', controlData.viewHome, true);
+        safeSetValue('.filterHome', controlData.filterHome, true);
+        safeSetValue('.primaryView', controlData.primaryView, true);
+
+        const type = controlData.type;
+        if (['TEXT', 'TEXT_AREA'].includes(type)) {
+            if (controlData.fieldValidations) {
+                safeSetValue('.fieldValidationsMaxChar', controlData.fieldValidations.maxChar);
+                safeSetValue('.fieldValidationsMinChar', controlData.fieldValidations.minChar);
+            }
+        } else if (['DROPDOWN', 'RADIO'].includes(type)) {
+            if (controlData.fieldValidations) {
+                safeSetValue('.fieldValidationsMultiSelect', controlData.fieldValidations.multiSelect, true);
+            }
+
+            if (controlData.options && controlData.options.length > 0) {
+                setTimeout(() => {
+                    const optionsType = controlElement.querySelector('.optionsType');
+                    if (optionsType) {
+                        optionsType.value = 'static';
+                        optionsType.dispatchEvent(new Event('change'));
+                        
+                        setTimeout(() => {
+                            const optionsContainer = controlElement.querySelector('.optionsContainer');
+                            if (optionsContainer) {
+                                optionsContainer.innerHTML = '';
+                                controlData.options.forEach(option => {
+                                    const optionTemplate = `
+                                        <div class="option">
+                                            <input type="hidden" class="optionId" value="${option.id || generateId(option.value)}">
+                                            <input type="text" class="form-control form-control-sm optionValue" placeholder="Value" value="${option.value}">
+                                            <button type="button" class="btn btn-sm btn-danger removeOptionBtn">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    `;
+                                    optionsContainer.insertAdjacentHTML('beforeend', optionTemplate);
+                                });
+                            }
+                        }, 300);
+                    }
+                }, 200);
+            } else if (controlData.fieldValidations && controlData.fieldValidations.dbTable) {
+                setTimeout(() => {
+                    const optionsType = controlElement.querySelector('.optionsType');
+                    if (optionsType) {
+                        optionsType.value = 'dynamic';
+                        optionsType.dispatchEvent(new Event('change'));
+                        
+                        setTimeout(() => {
+                            safeSetValue('.fieldValidationsDbTable', controlData.fieldValidations.dbTable);
+                            safeSetValue('.fieldValidationsAccess', controlData.fieldValidations.access);
+                            
+                            const useAccess = controlElement.querySelector('.useAccess');
+                            if (useAccess && controlData.fieldValidations.access) {
+                                useAccess.checked = true;
+                            }
+                        }, 300);
+                    }
+                }, 200);
+            }
+
+            if (type === 'DROPDOWN') {
+                safeSetValue('.isSelectAll', controlData.isSelectAll, true);
+                safeSetValue('.isSelectNone', controlData.isSelectNone, true);
+            }
+        } else if (type === 'DATE') {
+            if (controlData.fieldValidations) {
+                safeSetValue('.fieldValidationsMaxDate', controlData.fieldValidations.maxDate);
+                safeSetValue('.fieldValidationsMinDate', controlData.fieldValidations.minDate);
+                
+                if (controlData.fieldValidations.minDate) {
+                    setTimeout(() => {
+                        parseAndSetDurationInputs(controlElement, 'min', controlData.fieldValidations.minDate);
+                    }, 100);
+                }
+                
+                if (controlData.fieldValidations.maxDate) {
+                    setTimeout(() => {
+                        parseAndSetDurationInputs(controlElement, 'max', controlData.fieldValidations.maxDate);
+                    }, 150);
+                }
+            }
+        } else if (type === 'NUMBERS') {
+            if (controlData.fieldValidations) {
+                safeSetValue('.fieldValidationsMaxLimit', controlData.fieldValidations.maxLimit);
+                safeSetValue('.fieldValidationsMinLimit', controlData.fieldValidations.minLimit);
+            }
+        } else if (type === 'UPLOAD_IMAGE') {
+            safeSetValue('.primaryImage', controlData.primaryImage, true);
+        }
+
+        if (controlData.skipLogic) {
+            const skipLogic = controlElement.querySelector('.skipLogic');
+            if (skipLogic) {
+                skipLogic.value = JSON.stringify(controlData.skipLogic, null, 2);
+            }
+        }
+
+        if (controlData.relativeOptionsLogic) {
+            setTimeout(() => {
+                updateControlIdsDropdowns();
+                
+                setTimeout(() => {
+                    const relativeOptionsLogic = controlElement.querySelector('.relativeOptionsLogic');
+                    if (relativeOptionsLogic) {
+                        relativeOptionsLogic.value = controlData.relativeOptionsLogic;
+                    }
+                }, 500);
+            }, 1000);
+        }
+    }
+
+    function setControlValuesFromSchema(controlElement, controlData) {
+        if (!controlElement || !controlData) return;
+
+        function safeSetValue(selector, value, isCheckbox = false, maxRetries = 5) {
+            let retries = 0;
+            
+            function trySetValue() {
+                const element = controlElement.querySelector(selector);
+                if (element) {
+                    if (isCheckbox) {
+                        element.checked = !!value;
+                    } else {
+                        element.value = value || '';
+                    }
+                    return true;
+                } else if (retries < maxRetries) {
+                    retries++;
+                    setTimeout(trySetValue, 200);
+                    return false;
+                }
+                return false;
+            }
+            
+            return trySetValue();
+        }
+
+        if (controlData.properties) {
+            safeSetValue('.propertiesLabel', controlData.properties.label);
+            safeSetValue('.propertiesQNumber', controlData.properties.qNumber);
+        }
+
+        if (controlData.fieldValidations) {
+            safeSetValue('.fieldValidationsValueRequired', controlData.fieldValidations.valueRequired, true);
+        }
+
+        safeSetValue('.viewHome', controlData.viewHome, true);
+        safeSetValue('.filterHome', controlData.filterHome, true);
+        safeSetValue('.primaryView', controlData.primaryView, true);
+
+        const type = controlData.type;
+        if (['TEXT', 'TEXT_AREA'].includes(type)) {
+            if (controlData.fieldValidations) {
+                safeSetValue('.fieldValidationsMaxChar', controlData.fieldValidations.maxChar);
+                safeSetValue('.fieldValidationsMinChar', controlData.fieldValidations.minChar);
+            }
+        } else if (['DROPDOWN', 'RADIO'].includes(type)) {
+            if (controlData.fieldValidations) {
+                safeSetValue('.fieldValidationsMultiSelect', controlData.fieldValidations.multiSelect, true);
+            }
+
+            if (controlData.options && controlData.options.length > 0) {
+                setTimeout(() => {
+                    const optionsType = controlElement.querySelector('.optionsType');
+                    if (optionsType) {
+                        optionsType.value = 'static';
+                        optionsType.dispatchEvent(new Event('change'));
+                        
+                        setTimeout(() => {
+                            const optionsContainer = controlElement.querySelector('.optionsContainer');
+                            if (optionsContainer) {
+                                optionsContainer.innerHTML = '';
+                                controlData.options.forEach(option => {
+                                    const optionTemplate = `
+                                        <div class="option">
+                                            <input type="hidden" class="optionId" value="${option.id || generateId(option.value)}">
+                                            <input type="text" class="form-control form-control-sm optionValue" placeholder="Value" value="${option.value}">
+                                            <button type="button" class="btn btn-sm btn-danger removeOptionBtn">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    `;
+                                    optionsContainer.insertAdjacentHTML('beforeend', optionTemplate);
+                                });
+                            }
+                        }, 300);
+                    }
+                }, 200);
+            } else if (controlData.fieldValidations && controlData.fieldValidations.dbTable) {
+                setTimeout(() => {
+                    const optionsType = controlElement.querySelector('.optionsType');
+                    if (optionsType) {
+                        optionsType.value = 'dynamic';
+                        optionsType.dispatchEvent(new Event('change'));
+                        
+                        setTimeout(() => {
+                            safeSetValue('.fieldValidationsDbTable', controlData.fieldValidations.dbTable);
+                            safeSetValue('.fieldValidationsAccess', controlData.fieldValidations.access);
+                            
+                            const useAccess = controlElement.querySelector('.useAccess');
+                            if (useAccess && controlData.fieldValidations.access) {
+                                useAccess.checked = true;
+                            }
+                        }, 300);
+                    }
+                }, 200);
+            }
+
+            if (type === 'DROPDOWN') {
+                safeSetValue('.isSelectAll', controlData.isSelectAll, true);
+                safeSetValue('.isSelectNone', controlData.isSelectNone, true);
+            }
+        } else if (type === 'DATE') {
+            if (controlData.fieldValidations) {
+                safeSetValue('.fieldValidationsMaxDate', controlData.fieldValidations.maxDate);
+                safeSetValue('.fieldValidationsMinDate', controlData.fieldValidations.minDate);
+                
+                if (controlData.fieldValidations.minDate) {
+                    setTimeout(() => {
+                        parseAndSetDurationInputs(controlElement, 'min', controlData.fieldValidations.minDate);
+                    }, 100);
+                }
+                
+                if (controlData.fieldValidations.maxDate) {
+                    setTimeout(() => {
+                        parseAndSetDurationInputs(controlElement, 'max', controlData.fieldValidations.maxDate);
+                    }, 150);
+                }
+            }
+        } else if (type === 'NUMBERS') {
+            if (controlData.fieldValidations) {
+                safeSetValue('.fieldValidationsMaxLimit', controlData.fieldValidations.maxLimit);
+                safeSetValue('.fieldValidationsMinLimit', controlData.fieldValidations.minLimit);
+            }
+        } else if (type === 'UPLOAD_IMAGE') {
+            safeSetValue('.primaryImage', controlData.primaryImage, true);
+        }
+
+        if (controlData.skipLogic) {
+            const skipLogic = controlElement.querySelector('.skipLogic');
+            if (skipLogic) {
+                skipLogic.value = JSON.stringify(controlData.skipLogic, null, 2);
+            }
+        }
+
+        if (controlData.relativeOptionsLogic) {
+            setTimeout(() => {
+                updateControlIdsDropdowns();
+                
+                setTimeout(() => {
+                    const relativeOptionsLogic = controlElement.querySelector('.relativeOptionsLogic');
+                    if (relativeOptionsLogic) {
+                        relativeOptionsLogic.value = controlData.relativeOptionsLogic;
+                    }
+                }, 500);
+            }, 1000);
+        }
+    }
+
+    function parseAndSetDurationInputs(controlElement, type, durationString) {
+        if (!durationString) return;
+        
+        const match = durationString.match(/^(-?)(\d+)([YMD])$/);
+        if (!match) return;
+        
+        const sign = match[1];
+        const value = match[2];
+        const unit = match[3];
+        
+        const direction = sign === '-' ? 'past' : 'future';
+        
+        const dirSelector = `.${type}Dir`;
+        const unitSelector = `.${type}Unit`;
+        const valueSelector = `.${type}Value`;
+        
+        const dirInput = controlElement.querySelector(dirSelector);
+        const unitInput = controlElement.querySelector(unitSelector);
+        const valueInput = controlElement.querySelector(valueSelector);
+        
+        if (dirInput) dirInput.value = direction;
+        if (unitInput) unitInput.value = unit;
+        if (valueInput) valueInput.value = value;
+    }
+
+    function showAlert(message, type = 'info') {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.container').firstChild);
+        
+        setTimeout(() => {
+            if (alertDiv.parentElement) {
+                alertDiv.remove();
+            }
+        }, 5000);
+    }
+
+    // Initialize on load
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(checkAutoSaveDraft, 1000);
+        setupAutoSaveListeners();
+        startAutoSaveTimer();
+        checkEmptyState();
+        updateControlIdsDropdowns();
+        
+        document.getElementById('generateJsonBtn').addEventListener('click', function() {
+            deleteAutoSaveDraft();
+        });
+    });
+
+    // Skip Logic Functions (simplified version)
+    function openSkipLogicBuilder(textarea) {
+        currentSkipLogicTextarea = textarea;
+        skipLogicModal.show();
+    }
+
+    document.getElementById('applySkipLogicBtn').addEventListener('click', function() {
+        if (currentSkipLogicTextarea) {
+            const skipLogicJson = [{
+                relation: document.getElementById('rootRelation').value,
+                flag: true,
+                data: []
+            }];
+            currentSkipLogicTextarea.value = JSON.stringify(skipLogicJson, null, 2);
+        }
+        skipLogicModal.hide();
+    });
+</script>
+{% endblock %}

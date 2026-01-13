@@ -1,0 +1,56 @@
+<!-- templates/subunits/subunit_confirm_delete.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Delete Subunit - {{ object.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card shadow">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Confirm Delete
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <i class="fas fa-trash-alt fa-3x text-danger mb-3"></i>
+                        <h3>Are you sure?</h3>
+                        <p class="lead">You are about to delete the following subunit:</p>
+                        
+                        <div class="card mb-4">
+                            <div class="card-body text-start">
+                                <h5 class="card-title">{{ object.name }}</h5>
+                                <p class="card-text">
+                                    <strong>Acronym:</strong> {{ object.acronym }}<br>
+                                    <strong>Project:</strong> {{ object.project.name }}<br>
+                                    <strong>Created:</strong> {{ object.created_at|date:"F d, Y" }}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            <strong>Warning:</strong> This action cannot be undone. All data associated with this subunit will be permanently deleted.
+                        </div>
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'subunits:list' object.project.id %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash me-2"></i>Delete Subunit
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

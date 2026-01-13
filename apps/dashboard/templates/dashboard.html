@@ -1,0 +1,26 @@
+<!-- Example child template: dashboard.html -->
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - My Django App{% endblock %}
+
+{% block page_title %}Dashboard Overview{% endblock %}
+
+{% block page_subtitle %}Welcome back, {{ user.username }}. Here's what's happening today.{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Custom Dashboard Content</h5>
+            </div>
+            <div class="card-body">
+                <p>This is your custom dashboard content. The master layout provides the navigation, footer, and styling.</p>
+                {% comment %} <button class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i> Add New Item
+                </button> {% endcomment %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

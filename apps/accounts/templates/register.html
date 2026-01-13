@@ -1,0 +1,486 @@
+{% extends 'auth_base.html' %}
+
+{% block auth_title %}Register - AdminPro{% endblock %}
+
+{% block auth_max_width %}520px{% endblock %}
+
+{% block auth_header_title %}Organization Registration{% endblock %}
+
+{% block auth_header_subtitle %}Register your organization to get started{% endblock %}
+
+{% block auth_extra_css %}
+/* Progress Steps for Registration */
+.progress-steps {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+    position: relative;
+}
+
+.progress-steps::before {
+    content: '';
+    position: absolute;
+    top: 15px;
+    left: 50px;
+    right: 50px;
+    height: 2px;
+    background-color: #e2e8f0;
+    z-index: 1;
+}
+
+.step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+    flex: 1;
+}
+
+.step-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: #e2e8f0;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.step.active .step-circle {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.step.completed .step-circle {
+    background-color: var(--success-color);
+    color: white;
+}
+
+.step-text {
+    font-size: 0.85rem;
+    color: #64748b;
+    text-align: center;
+}
+
+.step.active .step-text {
+    color: var(--primary-color);
+    font-weight: 500;
+}
+
+/* Multi-step form */
+.form-step {
+    display: none;
+}
+
+.form-step.active {
+    display: block;
+    animation: slideDown 0.5s ease;
+}
+
+.form-navigation {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 2rem;
+    gap: 1rem;
+}
+
+.btn-prev, .btn-next {
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-prev {
+    background-color: #f1f5f9;
+    color: #475569;
+    border: 2px solid #e2e8f0;
+}
+
+.btn-prev:hover {
+    background-color: #e2e8f0;
+}
+
+.btn-next {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    color: white;
+    border: none;
+}
+
+.btn-next:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(67, 97, 238, 0.2);
+}
+
+@media (max-width: 576px) {
+    .progress-steps::before {
+        left: 40px;
+        right: 40px;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    .progress-steps::before {
+        background-color: #475569;
+    }
+    
+    .btn-prev {
+        background-color: #334155;
+        border-color: #475569;
+        color: #cbd5e1;
+    }
+    
+    .btn-prev:hover {
+        background-color: #475569;
+    }
+}
+{% endblock auth_extra_css %}
+
+{% block auth_content %}
+<!-- Progress Steps -->
+<div class="progress-steps">
+    <div class="step active" id="step1">
+        <div class="step-circle">1</div>
+        <div class="step-text">Organization</div>
+    </div>
+</div>
+
+<!-- Registration Form -->
+<form method="POST" action="{% url 'register' %}" id="registerForm" enctype="multipart/form-data">
+    {% csrf_token %}
+    
+    <!-- Single Step: Organization Details -->
+    <div class="form-step active" id="formStep1">
+        <h4 class="mb-4" style="color: var(--primary-color);">
+            <i class="fas fa-building me-2"></i>Organization Details
+        </h4>
+
+        <div class="row">
+            <!-- Organization Name -->
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label class="form-label required">Organization Name</label>
+                    <input type="text" class="form-control" id="organization" name="org_name" required>
+                </div>
+            </div>
+
+            <!-- Contact Person -->
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label class="form-label required">Contact Person</label>
+                    <input type="text" class="form-control" name="contact_person" placeholder="Full name" required>
+                </div>
+            </div>
+
+            <!-- Personal Email (for admin login) -->
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label class="form-label required">Admin Email</label>
+                    <input type="email" class="form-control" name="email" placeholder="admin@example.com" required>
+                    <small class="text-muted">This will be used for login credentials</small>
+                </div>
+            </div>
+
+            <!-- Contact Number -->
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label class="form-label required">Contact Number</label>
+                    <input type="tel" class="form-control" name="mobile" placeholder="10-digit mobile number" required>
+                </div>
+            </div>
+
+            <!-- Designation -->
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label class="form-label required">Designation</label>
+                    <input type="text" class="form-control" name="designation" placeholder="e.g., Manager, Director" required>
+                </div>
+            </div>
+
+            <!-- State -->
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label class="form-label">State</label>
+                    <select name="state_id" class="form-control" id="stateSelect">
+                        <option value="">-- Select State --</option>
+                        {% for s in states %}
+                            <option value="{{ s.state_id }}">{{ s.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- District -->
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label class="form-label">District</label>
+                    <select name="district_id" class="form-control" id="districtSelect">
+                        <option value="">-- Select District --</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- City -->
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label class="form-label">City</label>
+                    <select name="city_id" class="form-control" id="citySelect">
+                        <option value="">-- Select City --</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Address -->
+            <div class="col-md-12">
+                <div class="form-group">
+                    <label class="form-label">Address</label>
+                    <textarea class="form-control" name="address" rows="3" placeholder="Full organization address"></textarea>
+                </div>
+            </div>
+
+            <!-- GST -->
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label class="form-label">GST Number</label>
+                    <input type="text" class="form-control" name="gst_no" placeholder="15-digit GST number">
+                </div>
+            </div>
+
+            <!-- Logo -->
+            <div class="col-md-12">
+                <div class="form-group">
+                    <label class="form-label">Organization Logo</label>
+                    <input type="file" class="form-control" name="logo" id="logoInput" accept="image/png, image/jpeg, image/gif">
+                    <small class="text-muted">Allowed formats: PNG, JPEG, GIF (Max: 2MB)</small>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Terms -->
+        <div class="form-check mt-3">
+            <input class="form-check-input" type="checkbox" id="terms" required>
+            <label class="form-check-label">
+                I agree to the <a href="#" class="text-primary">Terms of Service</a> and <a href="#" class="text-primary">Privacy Policy</a>
+            </label>
+        </div>
+
+        <div class="form-navigation mt-4">
+            <button type="submit" class="btn-auth w-100">
+                <i class="fas fa-paper-plane"></i> Submit Registration
+            </button>
+        </div>
+    </div>
+
+</form>
+{% endblock auth_content %}
+
+{% block auth_footer_links %}
+<a href="{% url 'login' %}" class="auth-link">
+    <i class="fas fa-sign-in-alt"></i> Already have an account? Sign In
+</a>
+{% endblock auth_footer_links %}
+
+{% block auth_extra_js %}
+<script>
+    // Single step form functionality
+    // DOM Elements
+    const steps = document.querySelectorAll('.step');
+    const formSteps = document.querySelectorAll('.form-step');
+    
+    // Auto-focus on first field
+    document.addEventListener('DOMContentLoaded', function() {
+        const orgNameField = document.getElementById('organization');
+        if (orgNameField) {
+            orgNameField.focus();
+        }
+    });
+    
+    // Form validation and submission
+    const registerForm = document.getElementById('registerForm');
+    
+    if (registerForm) {
+        registerForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Validate terms checkbox
+            const termsCheckbox = document.getElementById('terms');
+            if (!termsCheckbox.checked) {
+                showAlert('You must agree to the Terms of Service and Privacy Policy.', 'danger');
+                return;
+            }
+            
+            // Validate all required fields
+            let isValid = true;
+            const requiredFields = [
+                { name: 'org_name', element: document.querySelector('[name="org_name"]'), label: 'Organization Name' },
+                { name: 'contact_person', element: document.querySelector('[name="contact_person"]'), label: 'Contact Person' },
+                { name: 'mobile', element: document.querySelector('[name="mobile"]'), label: 'Contact Number' },
+                { name: 'designation', element: document.querySelector('[name="designation"]'), label: 'Designation' },
+                { name: 'email', element: document.querySelector('[name="email"]'), label: 'Admin Email' }
+            ];
+            
+            // Check all required fields
+            for (const field of requiredFields) {
+                let value = field.element ? field.element.value.trim() : '';
+                
+                if (!value) {
+                    showAlert(`${field.label} is required.`, 'danger');
+                    field.element.focus();
+                    isValid = false;
+                    break;
+                }
+            }
+            
+            if (!isValid) {
+                return;
+            }
+            
+            // Validate email formats
+            const adminEmail = document.querySelector('[name="email"]').value.trim();
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            
+            if (!emailRegex.test(adminEmail)) {
+                showAlert('Please enter a valid admin email address.', 'danger');
+                document.querySelector('[name="email"]').focus();
+                return;
+            }
+            
+            // Validate mobile number
+            const mobile = document.querySelector('[name="mobile"]').value.trim();
+            const mobileRegex = /^[0-9]{10}$/;
+            if (!mobileRegex.test(mobile)) {
+                showAlert('Please enter a valid 10-digit mobile number.', 'danger');
+                document.querySelector('[name="mobile"]').focus();
+                return;
+            }
+            
+            // Disable submit button and show loading
+            const submitBtn = document.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting Registration...';
+            }
+            
+            // Submit the form
+            setTimeout(() => {
+                registerForm.submit();
+            }, 1000);
+        });
+    }
+    
+    // Dynamic dropdowns for State, District, City
+    document.addEventListener('DOMContentLoaded', function() {
+        const stateSelect = document.getElementById('stateSelect');
+        const districtSelect = document.getElementById('districtSelect');
+        const citySelect = document.getElementById('citySelect');
+        
+        if (stateSelect) {
+            stateSelect.addEventListener('change', function() {
+                const stateId = this.value;
+                districtSelect.innerHTML = '<option value="">-- Select District --</option>';
+                citySelect.innerHTML = '<option value="">-- Select City --</option>';
+                districtSelect.disabled = true;
+                citySelect.disabled = true;
+                
+                if (stateId) {
+                    fetch(`/api/get-districts/?state_id=${stateId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            districtSelect.innerHTML = '<option value="">-- Select District --</option>';
+                            data.forEach(district => {
+                                const option = document.createElement('option');
+                                option.value = district.id;
+                                option.textContent = district.name;
+                                districtSelect.appendChild(option);
+                            });
+                            districtSelect.disabled = false;
+                        })
+                        .catch(error => console.error('Error fetching districts:', error));
+                }
+            });
+        }
+        
+        if (districtSelect) {
+            districtSelect.addEventListener('change', function() {
+                const districtId = this.value;
+                citySelect.innerHTML = '<option value="">-- Select City --</option>';
+                citySelect.disabled = true;
+                
+                if (districtId) {
+                    fetch(`/api/get-cities/?district_id=${districtId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            citySelect.innerHTML = '<option value="">-- Select City --</option>';
+                            data.forEach(city => {
+                                const option = document.createElement('option');
+                                option.value = city.id;
+                                option.textContent = city.name;
+                                citySelect.appendChild(option);
+                            });
+                            citySelect.disabled = false;
+                        })
+                        .catch(error => console.error('Error fetching cities:', error));
+                }
+            });
+        }
+    });
+    
+    // Logo preview
+    document.getElementById('logoInput')?.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            // Check file size (max 2MB)
+            if (file.size > 2 * 1024 * 1024) {
+                showAlert('File size should be less than 2MB.', 'danger');
+                e.target.value = '';
+                return;
+            }
+            
+            // Check file type
+            const validTypes = ['image/png', 'image/jpeg', 'image/gif'];
+            if (!validTypes.includes(file.type)) {
+                showAlert('Only PNG, JPEG, and GIF images are allowed.', 'danger');
+                e.target.value = '';
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                // Create or update preview
+                let preview = document.getElementById('logoPreview');
+                if (!preview) {
+                    preview = document.createElement('div');
+                    preview.id = 'logoPreview';
+                    preview.style.maxWidth = '150px';
+                    preview.style.marginTop = '10px';
+                    preview.style.border = '1px solid #ddd';
+                    preview.style.padding = '5px';
+                    preview.style.borderRadius = '5px';
+                    preview.style.backgroundColor = '#f8f9fa';
+                    e.target.parentNode.appendChild(preview);
+                }
+                preview.innerHTML = `
+                    <img src="${event.target.result}" style="max-width: 100%; max-height: 100px;" class="mb-1">
+                    <small class="d-block text-muted">${file.name} (${(file.size / 1024).toFixed(2)} KB)</small>
+                `;
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+    
+    // Setup input validation clearing
+    const inputs = document.querySelectorAll('#registerForm .form-control');
+    setupInputValidation(inputs);
+</script>
+{% endblock auth_extra_js %}

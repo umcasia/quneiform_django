@@ -1,0 +1,557 @@
+<!-- templates/subunits/subunit_json_form.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Subunit JSON Schema Form - {{ project.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .drag-over {
+        border: 2px dashed #0d6efd;
+        background-color: rgba(13, 110, 253, 0.1);
+    }
+    .drag-handle {
+        cursor: move;
+        color: #6c757d;
+    }
+    .section-title {
+        font-weight: 600;
+    }
+    .control-type-badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        background-color: #6c757d;
+        color: white;
+        margin-left: 0.5rem;
+    }
+    .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: #6c757d;
+    }
+    .empty-state.small {
+        padding: 1rem;
+    }
+    .empty-state.small i {
+        font-size: 1.5rem;
+    }
+    .property-group {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #dee2e6;
+    }
+    .option {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+        align-items: center;
+    }
+    .option input {
+        flex: 1;
+    }
+    .form-section, .form-builder-container {
+        background-color: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1.5rem;
+    }
+    .preview-container {
+        background-color: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+        margin-top: 1.5rem;
+    }
+    #jsonOutput {
+        background-color: #2b3035;
+        color: #e9ecef;
+        padding: 1rem;
+        border-radius: 0.25rem;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    .card-header {
+        background-color: rgba(0, 0, 0, 0.03);
+    }
+    .nested-section {
+        margin-left: 1rem;
+        border-left: 3px solid #0d6efd;
+    }
+    .control-card {
+        margin-bottom: 0.75rem;
+    }
+    .childrenContainer {
+        min-height: 50px;
+        padding: 0.5rem;
+        border: 1px dashed #dee2e6;
+        border-radius: 0.25rem;
+        margin-bottom: 0.5rem;
+    }
+    .condition-group {
+        border-left: 3px solid #0d6efd;
+        padding-left: 15px;
+        margin-bottom: 15px;
+    }
+    .condition-item {
+        background-color: #f8f9fa;
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 10px;
+        border: 1px solid #dee2e6;
+    }
+    .condition-actions {
+        margin-top: 10px;
+    }
+    .logic-relation {
+        font-weight: bold;
+        margin: 10px 0;
+        padding: 5px;
+        background-color: #e9ecef;
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Back Button -->
+    <div class="mb-4">
+        <a href="" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-left me-2"></i>Back to Subunits
+        </a>
+    </div>
+
+    <div class="container py-4">
+        <div class="text-center mb-4">
+            <h2><i class="fas fa-window-restore me-2"></i>Form Schema Generator</h2>
+            <p class="lead">Add JSON schema for {{ project.name }}</p>
+        </div>
+
+        {% if messages %}
+        <div class="mb-4">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <form method="POST" id="jsonSchemaForm">
+            {% csrf_token %}
+            
+            <!-- Hidden fields for project and subunit -->
+            <input type="hidden" name="project_id" value="{{ project.id }}">
+            {% if subunit %}
+            <input type="hidden" name="subunit_id" value="{{ subunit.id }}">
+            {% endif %}
+            
+            <div class="form-section border">
+                <div class="row g-3">
+                    <div class="col-md-12">
+                        <div class="row">
+                            <div class="col-md-12 mb-2">
+                                <h5><i class="fas fa-cog me-2"></i>Survey Settings</h5>
+                            </div>
+
+                            <div class="col-md-6 mb-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Basic Information</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <label for="form_name" class="form-label">Form Name <span class="text-danger">*</span></label>
+                                            <input type="text" class="form-control" id="form_name" name="form_name" 
+                                                   value="{{ subunit.name|default:'' }}" required 
+                                                   placeholder="e.g., Waste Pickers Survey">
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="acronym" class="form-label">Acronym <span class="text-danger">*</span></label>
+                                                    <input type="text" class="form-control" id="acronym" name="acronym" 
+                                                           value="{{ subunit.acronym|default:'' }}" required 
+                                                           placeholder="e.g., WPS" maxlength="10">
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="version" class="form-label">Version</label>
+                                                    <input type="text" class="form-control" id="version" name="version" 
+                                                           value="{{ subunit.version|default:'1.0.0' }}" 
+                                                           placeholder="e.g., 1.0.0">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6 mb-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Platform Settings</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <div class="form-check form-switch">
+                                                        <input type="checkbox" class="form-check-input" 
+                                                               name="is_web" id="is_web" value="1"
+                                                               {% if not subunit or subunit.is_web %}checked{% endif %}>
+                                                        <label class="form-check-label" for="is_web">
+                                                            <strong>Web Survey</strong>
+                                                        </label>
+                                                        <div class="form-text">Enable web-based survey access</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <div class="form-check form-switch">
+                                                        <input type="checkbox" class="form-check-input" 
+                                                               name="is_app" id="is_app" value="1"
+                                                               {% if not subunit or subunit.is_app %}checked{% endif %}>
+                                                        <label class="form-check-label" for="is_app">
+                                                            <strong>App Survey</strong>
+                                                        </label>
+                                                        <div class="form-text">Enable mobile app survey access</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <div class="form-check form-switch">
+                                                        <input type="checkbox" class="form-check-input" 
+                                                               name="have_qc" id="have_qc" value="1"
+                                                               {% if not subunit or subunit.have_qc %}checked{% endif %}>
+                                                        <label class="form-check-label" for="have_qc">
+                                                            <strong>Quality Check</strong>
+                                                        </label>
+                                                        <div class="form-text">Enable quality control module</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <div class="form-check form-switch">
+                                                        <input type="checkbox" class="form-check-input" 
+                                                               name="have_validation" id="have_validation" value="1"
+                                                               {% if not subunit or subunit.have_validation %}checked{% endif %}>
+                                                        <label class="form-check-label" for="have_validation">
+                                                            <strong>Validations</strong>
+                                                        </label>
+                                                        <div class="form-text">Enable data validation module</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Additional settings -->
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <div class="form-check form-switch">
+                                                        <input type="checkbox" class="form-check-input" 
+                                                               name="active" id="active" value="1"
+                                                               {% if not subunit or subunit.active %}checked{% endif %}>
+                                                        <label class="form-check-label" for="active">
+                                                            <strong>Active</strong>
+                                                        </label>
+                                                        <div class="form-text">Set subunit status</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <div class="form-check form-switch">
+                                                        <input type="checkbox" class="form-check-input" 
+                                                               name="view_home_map" id="view_home_map" value="1"
+                                                               {% if subunit and subunit.view_home_map %}checked{% endif %}>
+                                                        <label class="form-check-label" for="view_home_map">
+                                                            <strong>View Home Map</strong>
+                                                        </label>
+                                                        <div class="form-text">Show on home map</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="border"></div>
+                    
+                    <div class="col-md-12">
+                        <div class="row">
+                            <div class="col-md-12 mb-2">
+                                <h5><i class="fas fa-code me-2"></i>JSON Schema</h5>
+                                <p class="text-muted">Paste your JSON schema below or use the form builder to create one</p>
+                            </div>
+                            <div class="col-md-12 mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div>
+                                        <span class="badge bg-info me-2">JSON Schema</span>
+                                    </div>
+                                    <div>
+                                        {% comment %} <a href="" class="btn btn-outline-primary btn-sm">
+                                            <i class="fas fa-magic me-1"></i>Use Form Builder
+                                        </a> {% endcomment %}
+                                    </div>
+                                </div>
+                                <textarea name="json_schema" class="form-control bg-white border" 
+                                          id="json_schema" rows="15" placeholder='{
+    "form_name": "Survey Name",
+    "acronym": "SUR",
+    "version": "1.0.0",
+    "data": [
+        {
+            "type": "SECTION",
+            "title": "Section Title",
+            "acronym": "SEC",
+            "isActive": true,
+            "children": []
+        }
+    ]
+}' required>{% if subunit and subunit.qnr_schema %}{{ subunit.qnr_schema|safe|escape }}{% endif %}</textarea>
+                                {% comment %} <div class="form-text">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Enter valid JSON format. Use the form builder for a visual interface.
+                                </div> {% endcomment %}
+                                <div id="jsonError" class="text-danger mt-2" style="display: none;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if subunit and subunit.description %}
+                    <div class="col-md-12">
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="3">{{ subunit.description }}</textarea>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="col-md-12">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <button type="button" class="btn btn-outline-info" id="formatJsonBtn">
+                                    <i class="fas fa-indent me-1"></i>Format JSON
+                                </button>
+                            </div>
+                            <div>
+                                <button type="submit" class="btn btn-success px-4" id="submitBtn">
+                                    <i class="fas fa-save me-1"></i>
+                                    {% if subunit %}Update Subunit{% else %}Create Subunit{% endif %}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+                
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const jsonSchemaTextarea = document.getElementById('json_schema');
+        const formNameInput = document.getElementById('form_name');
+        const acronymInput = document.getElementById('acronym');
+        const versionInput = document.getElementById('version');
+        const submitBtn = document.getElementById('submitBtn');
+        const formatJsonBtn = document.getElementById('formatJsonBtn');
+        const jsonErrorDiv = document.getElementById('jsonError');
+        
+        // Auto-update form name, acronym, version from JSON
+        function updateFormFieldsFromJson() {
+            try {
+                const jsonText = jsonSchemaTextarea.value.trim();
+                if (!jsonText) return;
+                
+                const jsonData = JSON.parse(jsonText);
+                
+                // Update form fields if they exist in JSON
+                if (jsonData.form_name && !formNameInput.value.trim()) {
+                    formNameInput.value = jsonData.form_name;
+                }
+                
+                if (jsonData.acronym && !acronymInput.value.trim()) {
+                    acronymInput.value = jsonData.acronym;
+                }
+                
+                if (jsonData.version && !versionInput.value.trim()) {
+                    versionInput.value = jsonData.version;
+                }
+            } catch (e) {
+                // Ignore errors during auto-update
+            }
+        }
+        
+        // Format JSON button
+        formatJsonBtn.addEventListener('click', function() {
+            try {
+                const jsonText = jsonSchemaTextarea.value.trim();
+                if (!jsonText) {
+                    showError('JSON textarea is empty');
+                    return;
+                }
+                
+                const jsonData = JSON.parse(jsonText);
+                const formattedJson = JSON.stringify(jsonData, null, 2);
+                jsonSchemaTextarea.value = formattedJson;
+                
+                // Auto-update form fields
+                updateFormFieldsFromJson();
+                
+                showSuccess('JSON formatted successfully');
+            } catch (e) {
+                showError('Invalid JSON format: ' + e.message);
+            }
+        });
+        // Form submission
+        document.getElementById('jsonSchemaForm').addEventListener('submit', function(e) {
+            const btn = document.getElementById('submitBtn');
+            
+            // Validate JSON before submission
+            try {
+                const jsonText = jsonSchemaTextarea.value.trim();
+                if (!jsonText) {
+                    e.preventDefault();
+                    showError('JSON schema is required');
+                    return;
+                }
+                
+                const jsonData = JSON.parse(jsonText);
+                
+                // Basic validation
+                if (!jsonData.form_name || !jsonData.acronym || !jsonData.data) {
+                    e.preventDefault();
+                    showError('JSON must contain form_name, acronym, and data fields');
+                    return;
+                }
+                
+                // Update form fields with JSON data if empty
+                if (!formNameInput.value.trim()) {
+                    formNameInput.value = jsonData.form_name;
+                }
+                
+                if (!acronymInput.value.trim()) {
+                    acronymInput.value = jsonData.acronym;
+                }
+                
+                if (!versionInput.value.trim() && jsonData.version) {
+                    versionInput.value = jsonData.version;
+                }
+                
+                // Disable button and show loading state
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Processing...';
+                
+            } catch (error) {
+                e.preventDefault();
+                showError('Invalid JSON format: ' + error.message);
+            }
+        });
+        
+        // Helper functions
+        function showError(message) {
+            jsonErrorDiv.textContent = message;
+            jsonErrorDiv.style.display = 'block';
+            
+            // Hide error after 5 seconds
+            setTimeout(function() {
+                jsonErrorDiv.style.display = 'none';
+            }, 5000);
+        }
+        
+        function showSuccess(message) {
+            // Create success alert
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-success alert-dismissible fade show position-fixed';
+            alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; max-width: 300px;';
+            alertDiv.innerHTML = `
+                <i class="fas fa-check-circle me-2"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.body.appendChild(alertDiv);
+            
+            // Auto-remove after 3 seconds
+            setTimeout(function() {
+                if (alertDiv.parentElement) {
+                    alertDiv.remove();
+                }
+            }, 3000);
+        }
+        
+        // Auto-format JSON on blur
+        jsonSchemaTextarea.addEventListener('blur', function() {
+            try {
+                const jsonText = this.value.trim();
+                if (!jsonText) return;
+                
+                const jsonData = JSON.parse(jsonText);
+                const formattedJson = JSON.stringify(jsonData, null, 2);
+                this.value = formattedJson;
+                
+                // Auto-update form fields
+                updateFormFieldsFromJson();
+            } catch (e) {
+                // Ignore format errors on blur
+            }
+        });
+        
+        // Auto-generate acronym from form name
+        formNameInput.addEventListener('input', function() {
+            if (!acronymInput.value.trim()) {
+                const name = this.value.trim();
+                if (name.length >= 3) {
+                    // Take first 3 letters or create from words
+                    const words = name.split(/\s+/);
+                    let acronym = '';
+                    
+                    if (words.length >= 3) {
+                        acronym = words[0].charAt(0) + words[1].charAt(0) + words[2].charAt(0);
+                    } else if (words.length === 2) {
+                        acronym = words[0].charAt(0) + words[1].charAt(0) + words[1].charAt(1);
+                    } else if (words.length === 1) {
+                        acronym = words[0].substring(0, 3);
+                    }
+                    
+                    if (acronym.length >= 3) {
+                        acronymInput.value = acronym.toUpperCase();
+                    }
+                }
+            }
+        });
+        
+        // Initialize with existing subunit data
+        {% if subunit and subunit.qnr_schema %}
+        try {
+            const jsonText = jsonSchemaTextarea.value.trim();
+            if (jsonText) {
+                updateFormFieldsFromJson();
+            }
+        } catch (e) {
+            // Ignore initialization errors
+        }
+        {% endif %}
+
+    });
+</script>
+{% endblock %}

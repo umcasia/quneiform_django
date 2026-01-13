@@ -1,0 +1,211 @@
+<!-- templates/projects/project_detail.html -->
+{% extends 'base.html' %}
+
+{% block title %}{{ project.name }} - Details{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Back Button -->
+    <div class="mb-4">
+        <a href="{% url 'project_list' %}" class="btn btn-light">
+            <i class="fas fa-arrow-left mr-1"></i> Back to List
+        </a>
+    </div>
+
+    <!-- Project Details Card -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h4 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-building mr-2"></i> {{ project.name }}
+            </h4>
+            <div>
+                {% if project.status == 'pending' %}
+                <span class="badge badge-warning badge-pill px-3 py-2">Pending Approval</span>
+                {% elif project.status == 'approved' %}
+                <span class="badge badge-success badge-pill px-3 py-2">Approved</span>
+                {% elif project.status == 'rejected' %}
+                <span class="badge badge-danger badge-pill px-3 py-2">Rejected</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <!-- Left Column -->
+                <div class="col-md-8">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h5 class="font-weight-bold text-gray-800">
+                                <i class="fas fa-project-diagram mr-2"></i> Project Details
+                            </h5>
+                            <hr>
+                            <p><strong>Project Name:</strong> {{ project.project_name }}</p>
+                            <p><strong>Registered On:</strong> {{ project.created_at|date:"F d, Y" }}</p>
+                            {% if project.gst_no %}
+                            <p><strong>GST Number:</strong> {{ project.gst_no }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <h5 class="font-weight-bold text-gray-800">
+                                <i class="fas fa-user-tie mr-2"></i> Contact Person
+                            </h5>
+                            <hr>
+                            <p><strong>Name:</strong> {{ project.contact_person }}</p>
+                            <p><strong>Designation:</strong> {{ project.designation }}</p>
+                            <p><strong>Mobile:</strong> {{ project.mobile }}</p>
+                            <p><strong>Email:</strong> {{ project.email }}</p>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h5 class="font-weight-bold text-gray-800">
+                                <i class="fas fa-map-marker-alt mr-2"></i> Location Details
+                            </h5>
+                            <hr>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <p><strong>State:</strong> {{ project.state.name|default:"Not specified" }}</p>
+                                </div>
+                                <div class="col-md-4">
+                                    <p><strong>District:</strong> {{ project.district.name|default:"Not specified" }}</p>
+                                </div>
+                                <div class="col-md-4">
+                                    <p><strong>City:</strong> {{ project.city.name|default:"Not specified" }}</p>
+                                </div>
+                            </div>
+                            {% if project.address %}
+                            <p><strong>Address:</strong><br>{{ project.address|linebreaks }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% if project.status == 'rejected' and project.rejection_reason %}
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="alert alert-danger">
+                                <h5 class="alert-heading">
+                                    <i class="fas fa-times-circle mr-1"></i> Rejection Reason
+                                </h5>
+                                <p>{{ project.rejection_reason|linebreaks }}</p>
+                                {% if project.approved_by %}
+                                <hr>
+                                <p class="mb-0">
+                                    <small>Rejected by: {{ project.approved_by.get_full_name }} on {{ project.approved_at|date:"F d, Y" }}</small>
+                                </p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Right Column -->
+                <div class="col-md-4">
+                    <!-- Logo Card -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h6 class="m-0 font-weight-bold text-primary">
+                                <i class="fas fa-image mr-1"></i> Project Logo
+                            </h6>
+                        </div>
+                        <div class="card-body text-center">
+                            {% if project.logo %}
+                            <img src="{{ project.logo.url }}" 
+                                 alt="{{ project.name }}" 
+                                 class="img-fluid rounded" 
+                                 style="max-height: 200px;">
+                            {% else %}
+                            <div class="py-5">
+                                <i class="fas fa-building fa-4x text-muted mb-3"></i>
+                                <p class="text-muted">No logo uploaded</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Status Card -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h6 class="m-0 font-weight-bold text-primary">
+                                <i class="fas fa-info-circle mr-1"></i> Status Information
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Current Status:</strong><br>
+                                {% if project.status == 'pending' %}
+                                <span class="badge bg-warning text-dark">Pending Approval</span>
+                                {% elif project.status == 'approved' %}
+                                <span class="badge bg-success">Approved</span>
+                                {% elif project.status == 'rejected' %}
+                                <span class="badge bg-danger">Rejected</span>
+                                {% endif %}
+                            </p>
+                            
+                            {% if project.approved_by %}
+                            <p><strong>Action Taken By:</strong><br>
+                                {{ project.approved_by.get_full_name }}
+                            </p>
+                            {% endif %}
+                            
+                            {% if project.approved_at %}
+                            <p><strong>Action Date:</strong><br>
+                                {{ project.approved_at|date:"F d, Y h:i A" }}
+                            </p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% comment %} <!-- Action Buttons -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="m-0 font-weight-bold text-primary">
+                                <i class="fas fa-cogs mr-1"></i> Actions
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-grid gap-2">
+                                {% if project.status == 'pending' %}
+                                <a href="#" 
+                                   class="btn btn-success btn-block approve-btn" 
+                                   data-toggle="modal" 
+                                   data-target="#approveModal"
+                                   data-id="{{ project.id }}"
+                                   data-name="{{ project.name }}">
+                                    <i class="fas fa-check mr-1"></i> Approve
+                                </a>
+                                <a href="#" 
+                                   class="btn btn-danger btn-block reject-btn" 
+                                   data-toggle="modal" 
+                                   data-target="#rejectModal"
+                                   data-id="{{ project.id }}"
+                                   data-name="{{ project.name }}">
+                                    <i class="fas fa-times mr-1"></i> Reject
+                                </a>
+                                {% elif project.status == 'approved' %}
+                                <a href="#" class="btn btn-warning btn-block">
+                                    <i class="fas fa-ban mr-1"></i> Deactivate
+                                </a>
+                                {% elif project.status == 'rejected' %}
+                                <a href="#" 
+                                   class="btn btn-success btn-block approve-btn" 
+                                   data-toggle="modal" 
+                                   data-target="#approveModal"
+                                   data-id="{{ project.id }}"
+                                   data-name="{{ project.name }}">
+                                    <i class="fas fa-redo mr-1"></i> Approve Now
+                                </a>
+                                {% endif %}
+                                <a href="#" class="btn btn-info btn-block">
+                                    <i class="fas fa-envelope mr-1"></i> Send Email
+                                </a>
+                            </div>
+                        </div>
+                    </div> {% endcomment %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% comment %} {% include 'projects/_modals.html' %} {% endcomment %}
+{% endblock %}

@@ -1,0 +1,377 @@
+{% extends 'base.html' %}
+
+{% block title %}Designations - Master Data{% endblock %}
+
+{% block header_title %}Master Data{% endblock %}
+
+{% block page_title %}Designation Management{% endblock %}
+
+{% block page_description %}Manage Designations and their details{% endblock %}
+
+{% block page_header_actions %}
+<div class="d-flex gap-2">
+    {% comment %} <button class="btn btn-outline-secondary">
+        <i class="fas fa-download me-2"></i> Export
+    </button> {% endcomment %}
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addDesignationModal">
+        <i class="fas fa-plus me-2"></i> Add Designation
+    </button>
+</div>
+{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard' %}"><i class="fas fa-home"></i></a></li>
+        <li class="breadcrumb-item"><a href="#">Master Data</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Designations</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<!-- Designations Card -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-map-marked-alt"></i> Designations List
+        </h5>
+        <div class="d-flex align-items-center">
+            <form method="get" class="d-flex gap-2">
+                <input type="text"
+                    name="search"
+                    value="{{ search|default_if_none:'' }}"
+                    class="form-control form-control-sm"
+                    placeholder="Search Designation">
+
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All</option>
+                    <option value="active" {% if status == 'active' %}selected{% endif %}>
+                        Active
+                    </option>
+                    <option value="inactive" {% if status == 'inactive' %}selected{% endif %}>
+                        Inactive
+                    </option>
+                </select>
+
+                <button class="btn btn-sm btn-primary">
+                    <i class="fas fa-filter"></i>
+                </button>
+
+                {% if search or status %}
+                <a href="{% url 'designation-list' %}" class="btn btn-sm btn-secondary">
+                    <i class="fas fa-times"></i>
+                </a>
+                {% endif %}
+            </form>
+
+        </div>
+    </div>
+    
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Designation Name</th>
+                    <th>Status</th>
+                    <th>Created At</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for designation in designations %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td class="fw-semibold">{{ designation.name }}</td>
+                    <td>
+                        {% if designation.is_active %}
+                            <span class="status-badge status-active">Active</span>
+                        {% else %}
+                            <span class="status-badge status-inactive">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ designation.created_at|date:"d M Y" }}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn-edit"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#editDesignationModal{{ designation.designation_id }}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+
+                            {% comment %} <a href="{% url 'designation-delete' designation.designation_id %}"
+                            class="btn-reject"
+                            onclick="return confirm('Deactivate this designation?')">
+                                <i class="fas fa-ban"></i>
+                            </a> {% endcomment %}
+                            <form method="post"
+                                action="{% url 'designation-delete' designation.designation_id %}"
+                                style="display:inline;"
+                                onsubmit="return confirm('Deactivate this designation?')">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-reject">
+                                    <i class="fas fa-ban"></i>
+                                </button>
+                            </form>
+
+                        </div>
+                    </td>
+                </tr>
+
+                <!-- EDIT MODAL -->
+                <div class="modal fade" id="editDesignationModal{{ designation.designation_id }}" tabindex="-1" aria-labelledby="addDesignationModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="addDesignationModalLabel">
+                                    <i class="fas fa-edit me-2"></i> Edit Designation
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form method="post" action="{% url 'designation-edit' designation.designation_id %}">
+                                    {% csrf_token %}
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label>Designation</label>
+                                            <input type="text" name="name"
+                                                class="form-control mb-2"
+                                                value="{{ designation.name }}" required>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label>
+                                                <input type="checkbox" name="is_active"
+                                                    {% if designation.is_active %}checked{% endif %}>
+                                                Active
+                                            </label>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                            <button class="btn btn-primary">Update</button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center">No designations found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+
+        </table>
+        {% if search or status %}
+        <div class="alert alert-light border mb-2 py-1 px-2">
+            <small>
+                Filters applied:
+                {% if search %}<b>Search:</b> "{{ search }}"{% endif %}
+                {% if status %}<b>Status:</b> {{ status|title }}{% endif %}
+            </small>
+        </div>
+        {% endif %}
+
+    </div>
+    
+    {% if designations.paginator.num_pages > 1 %}
+    <div class="card-footer bg-white">
+        <div class="d-flex justify-content-between align-items-center">
+
+            <div class="text-muted small">
+                Showing {{ designations.start_index }} – {{ designations.end_index }}
+                of {{ designations.paginator.count }} designations
+            </div>
+
+            <nav class="mt-3">
+                <ul class="pagination mb-0">
+
+                    <!-- Previous -->
+                    {% if designations.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link"
+                        href="?page={{ designations.previous_page_number }}&search={{ search }}&status={{ status }}">
+                            Previous
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">Previous</span>
+                    </li>
+                    {% endif %}
+
+                    <!-- Page numbers -->
+                    {% for num in designations.paginator.page_range %}
+                        {% if num == designations.number %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                        {% elif num > designations.number|add:'-3' and num < designations.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link"
+                                href="?page={{ num }}&search={{ search }}&status={{ status }}">
+                                    {{ num }}
+                                </a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    <!-- Next -->
+                    {% if designations.has_next %}
+                    <li class="page-item">
+                        <a class="page-link"
+                        href="?page={{ designations.next_page_number }}&search={{ search }}&status={{ status }}">
+                            Next
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">Next</span>
+                    </li>
+                    {% endif %}
+
+                </ul>
+            </nav>
+
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<!-- Add Designation Modal -->
+<div class="modal fade" id="addDesignationModal" tabindex="-1" aria-labelledby="addDesignationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addDesignationModalLabel">
+                    <i class="fas fa-plus-circle me-2"></i> Add New Designation
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post" action="{% url 'designation-create' %}" id="addDesignationForm">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="name" class="form-label">Designation Name *</label>
+                            <input type="text" name="name" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="is_active" name="is_active" checked>
+                                <label class="form-check-label" for="is_active">
+                                    Active Designation
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="addDesignationForm" class="btn btn-primary">Save Designation</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Toast Container -->
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1100;">
+    {% for message in messages %}
+    <div class="toast align-items-center text-bg-success border-0 mb-2"
+         role="alert"
+         aria-live="assertive"
+         aria-atomic="true"
+         data-bs-delay="3000">
+        <div class="d-flex">
+            <div class="toast-body">
+                <i class="fas fa-check-circle me-2"></i>
+                {{ message }}
+            </div>
+            <button type="button"
+                    class="btn-close btn-close-white me-2 m-auto"
+                    data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    
+    // Handle designation actions
+    document.querySelectorAll('.btn-reject').forEach(button => {
+        button.addEventListener('click', function(e) {
+            const designationName = this.closest('tr').querySelector('.fw-semibold').textContent;
+            
+            if (confirm(`Are you sure you want to deactivate ${designationName}?`)) {
+                // In a real app, you would make an AJAX request here
+                const statusBadge = this.closest('tr').querySelector('.status-badge');
+                const originalHTML = this.innerHTML;
+                this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                
+                // Simulate API call
+                setTimeout(() => {
+                    statusBadge.className = 'status-badge status-inactive';
+                    statusBadge.innerHTML = '<i class="fas fa-ban"></i> Inactive';
+                    this.innerHTML = '<i class="fas fa-check"></i>';
+                    this.classList.remove('btn-reject');
+                    this.classList.add('btn-edit');
+                    this.title = 'Activate';
+                    
+                    alert(`Designation "${designationName}" has been deactivated.`);
+                }, 1000);
+            }
+        });
+    });
+    
+    // Handle edit buttons
+    document.querySelectorAll('.btn-edit').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const designationName = this.closest('tr').querySelector('.fw-semibold').textContent;
+            const statusBadge = this.closest('tr').querySelector('.status-badge');
+            
+            if (this.title === 'Activate') {
+                // Activate designation
+                if (confirm(`Are you sure you want to activate ${designationName}?`)) {
+                    const originalHTML = this.innerHTML;
+                    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                    
+                    // Simulate API call
+                    setTimeout(() => {
+                        statusBadge.className = 'status-badge status-active';
+                        statusBadge.innerHTML = '<i class="fas fa-check-circle"></i> Active';
+                        this.innerHTML = '<i class="fas fa-ban"></i>';
+                        this.classList.remove('btn-edit');
+                        this.classList.add('btn-reject');
+                        this.title = 'Deactivate';
+                        
+                        alert(`Designation "${designationName}" has been activated.`);
+                    }, 1000);
+                }
+            } else {
+                // Show edit modal
+                console.log(`Editing designation: ${designationName}`);
+                // In a real app, you would populate the edit modal with data
+            }
+        });
+    });
+    
+    // Handle view buttons
+    document.querySelectorAll('.btn-view').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const designationName = this.closest('tr').querySelector('.fw-semibold').textContent;
+            alert(`Viewing details for: ${designationName}\n\nThis would open a detailed view in a real application.`);
+        });
+    });
+
+</script>
+
+{% endblock %}

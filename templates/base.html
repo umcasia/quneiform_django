@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Super Admin Dashboard{% endblock %}</title>
+    
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --primary-light: #eef2ff;
+            --secondary-color: #3f37c9;
+            --sidebar-width: 280px;
+            --header-height: 70px;
+            --sidebar-bg: #1e293b;
+            --sidebar-color: #cbd5e1;
+            --sidebar-active: #4361ee;
+            --submenu-bg: #0f172a;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #334155;
+            overflow-x: hidden;
+        }
+        
+        .wrapper {
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        /* Sidebar Styles */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--sidebar-bg);
+            color: var(--sidebar-color);
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .sidebar-header {
+            padding: 1.5rem 1.5rem 1rem;
+            border-bottom: 1px solid #334155;
+            margin-bottom: 1rem;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: white;
+            text-decoration: none;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 700;
+            font-size: 1.5rem;
+        }
+        
+        .logo-icon {
+            background-color: var(--primary-color);
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .sidebar-nav {
+            padding: 0 1rem 2rem;
+        }
+        
+        .nav-title {
+            color: #94a3b8;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 0.5rem 1rem;
+            margin-top: 1rem;
+        }
+        
+        .nav-item {
+            margin-bottom: 0.25rem;
+        }
+        
+        .nav-link {
+            color: var(--sidebar-color);
+            text-decoration: none;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            position: relative;
+        }
+        
+        .nav-link:hover, .nav-link.active {
+            background-color: rgba(67, 97, 238, 0.15);
+            color: white;
+        }
+        
+        .nav-link.active {
+            background-color: var(--sidebar-active);
+            color: white;
+        }
+        
+        .nav-icon {
+            width: 20px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+        
+        /* Dropdown/Collapse Toggle */
+        .nav-link.has-submenu {
+            padding-right: 2.5rem;
+        }
+        
+        .nav-link.has-submenu::after {
+            content: '\f078';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            right: 1rem;
+            transition: transform 0.3s ease;
+        }
+        
+        .nav-link.has-submenu[aria-expanded="true"]::after {
+            transform: rotate(180deg);
+        }
+        
+        /* Submenu Styles */
+        .submenu {
+            background-color: var(--submenu-bg);
+            border-radius: 8px;
+            margin: 0.25rem 0 0.25rem 1rem;
+            overflow: hidden;
+        }
+        
+        .submenu-item {
+            margin-bottom: 0;
+        }
+        
+        .submenu-link {
+            padding: 0.625rem 1rem 0.625rem 2.5rem;
+            font-size: 0.875rem;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            border-left: 3px solid transparent;
+            transition: all 0.2s ease;
+        }
+        
+        .submenu-link:hover {
+            color: white;
+            background-color: rgba(67, 97, 238, 0.1);
+            border-left-color: var(--primary-color);
+        }
+        
+        .submenu-link.active {
+            color: white;
+            background-color: rgba(67, 97, 238, 0.2);
+            border-left-color: var(--primary-color);
+        }
+        
+        .submenu-icon {
+            width: 16px;
+            text-align: center;
+            font-size: 0.8rem;
+        }
+        
+        /* Main Content Styles */
+        .main-content {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            transition: all 0.3s ease;
+        }
+        
+        /* Header Styles */
+        .header {
+            height: var(--header-height);
+            background-color: white;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header-left h1 {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            font-size: 1.5rem;
+            color: #1e293b;
+            margin-bottom: 0;
+        }
+        
+        .header-left .datetime {
+            font-size: 0.875rem;
+            color: #64748b;
+        }
+        
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        
+        .search-box {
+            position: relative;
+            width: 300px;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 0.5rem 1rem 0.5rem 2.5rem;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            background-color: #f8fafc;
+            font-size: 0.875rem;
+        }
+        
+        .search-box i {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #94a3b8;
+        }
+        
+        .user-dropdown {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+        }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+        
+        .user-info h6 {
+            font-weight: 600;
+            margin-bottom: 0;
+            color: #1e293b;
+        }
+        
+        .user-info small {
+            color: #64748b;
+            font-size: 0.75rem;
+        }
+        
+        /* Page Content Styles */
+        .page-content {
+            padding: 2rem;
+        }
+        
+        .page-title {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            font-size: 1.75rem;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+        }
+        
+        .page-description {
+            color: #64748b;
+            margin-bottom: 2rem;
+        }
+        
+        /* Card & Table Styles */
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            overflow: hidden;
+        }
+        
+        .card-header {
+            background-color: white;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 1.25rem 1.5rem;
+        }
+        
+        .card-title {
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .table-responsive {
+            border-radius: 0 0 12px 12px;
+            overflow: hidden;
+        }
+        
+        .table {
+            margin-bottom: 0;
+        }
+        
+        .table thead th {
+            background-color: #f1f5f9;
+            color: #475569;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            padding: 1rem 1.5rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        
+        .table tbody td {
+            padding: 1.25rem 1.5rem;
+            vertical-align: middle;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .table tbody tr:hover {
+            background-color: #f8fafc;
+        }
+        
+        /* Status Badge */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 0.35rem 0.75rem;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.025em;
+        }
+        
+        .status-active {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+        
+        .status-pending {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+        
+        .status-inactive {
+            background-color: #f3f4f6;
+            color: #374151;
+        }
+        
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .btn-reject {
+            background-color: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+            padding: 0.375rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-reject:hover {
+            background-color: #dc2626;
+            color: white;
+        }
+        
+        .btn-edit {
+            background-color: #dbeafe;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+            padding: 0.375rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-edit:hover {
+            background-color: #1d4ed8;
+            color: white;
+        }
+        
+        .btn-view {
+            background-color: #e0e7ff;
+            color: #4f46e5;
+            border: 1px solid #c7d2fe;
+            padding: 0.375rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-view:hover {
+            background-color: #4f46e5;
+            color: white;
+        }
+        
+        /* Logo Placeholder */
+        .logo-placeholder {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background-color: #e0e7ff;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+        
+        .logo-na {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background-color: #f3f4f6;
+            color: #9ca3af;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        /* Form Styles */
+        .form-label {
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+        
+        .form-control, .form-select {
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            padding: 0.625rem 0.75rem;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
+        }
+        
+        /* Footer */
+        .footer {
+            padding: 2rem;
+            border-top: 1px solid #e2e8f0;
+            background-color: white;
+            margin-top: 2rem;
+        }
+        
+        /* Mobile Toggle */
+        .sidebar-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #475569;
+        }
+        
+        /* Responsive */
+        @media (max-width: 992px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+            
+            .sidebar-toggle {
+                display: block;
+            }
+            
+            .header {
+                padding: 0 1rem;
+            }
+            
+            .search-box {
+                width: 200px;
+            }
+            
+            .page-content {
+                padding: 1.5rem;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .search-box {
+                display: none;
+            }
+            
+            .table-responsive {
+                font-size: 0.875rem;
+            }
+            
+            .table thead th, 
+            .table tbody td {
+                padding: 0.75rem 1rem;
+            }
+        }
+        
+        /* Custom styles block */
+        {% block extra_css %}{% endblock %}
+    </style>
+    
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <div class="wrapper">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <a href="#" class="logo">
+                    <div class="logo-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <span>AdminPro</span>
+                </a>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <div class="nav-title">Main Menu</div>
+                {% block sidebar_nav %}
+                <!-- Default sidebar navigation -->
+                <div class="nav-item">
+                    <a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                        <i class="fas fa-tachometer-alt nav-icon"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </div>
+                
+                <div class="nav-item">
+                    <a href="" class="nav-link {% if request.resolver_match.url_name == 'organization_list' %}active{% endif %}">
+                        <i class="fas fa-poll"></i>
+                        <span>New Survey</span>
+                    </a>
+                </div> 
+                
+                <div class="nav-item">
+                    <a href="" class="nav-link {% if request.resolver_match.url_name == 'course_list' %}active{% endif %}">
+                        <i class="fas fa-edit"></i>
+                        <span>Draft Survey</span>
+                    </a>
+                </div> 
+                
+                <div class="nav-item">
+                    <a href="" class="nav-link {% if request.resolver_match.url_name == 'course_list' %}active{% endif %}">
+                        <i class="fas fa-paper-plane"></i>
+                        <span>Survey Submission</span>
+                    </a>
+                </div> 
+                
+                <!-- Manage Menu with Submenu -->
+                <div class="nav-item">
+                    <a class="nav-link has-submenu {% if 'manage' in request.path %}active{% endif %}" 
+                       data-bs-toggle="collapse" 
+                       href="#manageMenu" 
+                       role="button" 
+                       aria-expanded="{% if 'manage' in request.path %}true{% else %}false{% endif %}" 
+                       aria-controls="manageMenu">
+                        <i class="fas fa-database nav-icon"></i>
+                        <span>Manage </span>
+                    </a>
+                    <div class="collapse {% if 'manage' in request.path %}show{% endif %} submenu" id="manageMenu">
+                        <div class="nav-item submenu-item">
+                            <a href="{% url 'project_list' %}" class="submenu-link {% if request.resolver_match.url_name == 'project_list' %}active{% endif %}">
+                                <i class="fas fa-project-diagram mr-2"></i>
+                                <span>Organizations</span>
+                            </a>
+                        </div>
+                        <div class="nav-item submenu-item">
+                            <a href="#" class="submenu-link {% if request.resolver_match.url_name == 'state_list' %}active{% endif %}">
+                                <i class="fas fa-users nav-icon"></i>
+                                <span>Users</span>
+                            </a>
+                        </div>
+
+                        {% if user.is_organization_admin %}
+                        <div class="nav-item submenu-item">
+                            <a href="{% url 'subunit_list' user.project_id %}"
+                            class="submenu-link">
+                                <i class="fas fa-wpforms"></i>
+                                <span>Manage Form</span>
+                            </a>
+                        </div>
+                        {% endif %}
+
+                        <div class="nav-item submenu-item">
+                            <a href="#" class="submenu-link {% if request.resolver_match.url_name == 'designation_list' %}active{% endif %}">
+                                <i class="fas fa-building"></i>{% comment %} <i class="fas fa-wpforms"></i> {% endcomment %}
+                                <span>Form Builder</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Master Menu with Submenu -->
+                <div class="nav-item">
+                    <a class="nav-link has-submenu {% if 'master' in request.path %}active{% endif %}" 
+                       data-bs-toggle="collapse" 
+                       href="#masterMenu" 
+                       role="button" 
+                       aria-expanded="{% if 'master' in request.path %}true{% else %}false{% endif %}" 
+                       aria-controls="masterMenu">
+                        <i class="fas fa-cog"></i>
+                        <span>Master</span>
+                    </a>
+                    <div class="collapse {% if 'master' in request.path %}show{% endif %} submenu" id="masterMenu">
+                        <div class="nav-item submenu-item">
+                            <a href="{% url 'state-list' %}" class="submenu-link {% if request.resolver_match.url_name == 'state_list' %}active{% endif %}">
+                                <i class="fas fa-map-marked-alt submenu-icon"></i>
+                                <span>State</span>
+                            </a>
+                        </div>
+                        <div class="nav-item submenu-item">
+                            <a href="{% url 'district-list' %}" class="submenu-link {% if request.resolver_match.url_name == 'district_list' %}active{% endif %}">
+                                <i class="fas fa-map submenu-icon"></i>
+                                <span>District</span>
+                            </a>
+                        </div>
+                        <div class="nav-item submenu-item">
+                            <a href="{% url 'city-list' %}" class="submenu-link {% if request.resolver_match.url_name == 'city_list' %}active{% endif %}">
+                                <i class="fas fa-city submenu-icon"></i>
+                                <span>City</span>
+                            </a>
+                        </div>
+
+                        <div class="nav-item submenu-item">
+                            <a href="{% url 'designation-list' %}" class="submenu-link {% if request.resolver_match.url_name == 'designation_list' %}active{% endif %}">
+                                <i class="fas fa-user-tag"></i>
+                                <span>Designation</span>
+                            </a>
+                        </div>
+
+                        <div class="nav-item submenu-item">
+                            <a href="" class="submenu-link {% if request.resolver_match.url_name == 'designation_list' %}active{% endif %}">
+                                <i class="fas fa-file"></i>
+                                <span>Pages</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                {% comment %} <div class="nav-item">
+                    <a href="" class="nav-link {% if request.resolver_match.url_name == 'batch_list' %}active{% endif %}">
+                        <i class="fas fa-layer-group nav-icon"></i>
+                        <span>Batches</span>
+                    </a>
+                </div>
+                {% endcomment %}
+
+                {% comment %} <div class="nav-item">
+                    <a href="" class="nav-link {% if request.resolver_match.url_name == 'session_list' %}active{% endif %}">
+                        <i class="fas fa-calendar-alt nav-icon"></i>
+                        <span>Sessions</span>
+                    </a>
+                </div> {% endcomment %}
+                
+                <div class="nav-title">Settings</div>
+                
+                <div class="nav-item">
+                    <a href="" class="nav-link {% if request.resolver_match.url_name == 'settings' %}active{% endif %}">
+                        <i class="fas fa-cog nav-icon"></i>
+                        <span>Settings</span>
+                    </a>
+                </div>
+                
+                <div class="nav-item">
+                    <a href="{% url 'logout' %}" class="nav-link">
+                        <i class="fas fa-sign-out-alt nav-icon"></i>
+                        <span>Logout</span>
+                    </a>
+                </div>
+                {% endblock sidebar_nav %}
+            </nav>
+        </aside>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <button class="sidebar-toggle me-3">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div>
+                        <h1>
+                            {% block header_title %}
+                                {% if user.is_authenticated %}
+                                    {{ user.get_full_name|default:user.username }}
+                                {% endif %}
+                            {% endblock %}
+                        </h1>
+                        <div class="datetime" id="currentDateTime">
+                            <!-- Updated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="header-right">
+                    {% comment %} {% block header_search %}
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="globalSearch" placeholder="Search...">
+                    </div>
+                    {% endblock header_search %} {% endcomment %}
+                    
+                    {% block user_menu %}
+                    <div class="dropdown">
+                        <div class="user-dropdown" data-bs-toggle="dropdown">
+                            <div class="user-avatar">
+                                <span>SA</span>
+                            </div>
+                            <div class="user-info">
+                                <h6>{% if user.is_authenticated %}{{ user.get_full_name|default:user.username }}{% endif %}</h6>
+                                {% comment %} <small>Administrator</small> {% endcomment %}
+                            </div>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href=""><i class="fas fa-user me-2"></i> Profile</a></li>
+                            <li><a class="dropdown-item" href=""><i class="fas fa-cog me-2"></i> Settings</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
+                        </ul>
+                    </div>
+                    {% endblock user_menu %}
+                </div>
+            </header>
+            
+            <!-- Page Content -->
+            <main class="page-content">
+                {% block page_header %}
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h1 class="page-title">{% block page_title %}Dashboard{% endblock %}</h1>
+                        <p class="page-description">{% block page_description %}Manage your system{% endblock %}</p>
+                    </div>
+                    {% block page_header_actions %}{% endblock %}
+                </div>
+                {% endblock page_header %}
+                
+                {% block breadcrumb %}
+                {% if breadcrumb %}
+                <nav aria-label="breadcrumb" class="mb-4">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{% url 'dashboard' %}"><i class="fas fa-home"></i></a></li>
+                        {% for item in breadcrumb %}
+                            {% if forloop.last %}
+                                <li class="breadcrumb-item active" aria-current="page">{{ item.name }}</li>
+                            {% else %}
+                                <li class="breadcrumb-item"><a href="{{ item.url }}">{{ item.name }}</a></li>
+                            {% endif %}
+                        {% endfor %}
+                    </ol>
+                </nav>
+                {% endif %}
+                {% endblock breadcrumb %}
+                
+                {% block messages %}
+                {% if messages %}
+                <div class="mb-4">
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {% if message.tags == 'success' %}
+                            <i class="fas fa-check-circle me-2"></i>
+                        {% elif message.tags == 'error' %}
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                        {% elif message.tags == 'warning' %}
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                        {% elif message.tags == 'info' %}
+                            <i class="fas fa-info-circle me-2"></i>
+                        {% else %}
+                            <i class="fas fa-info-circle me-2"></i>
+                        {% endif %}
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% endblock messages %}
+                
+                {% block content %}
+                <!-- Main content goes here -->
+                {% endblock content %}
+                
+                <!-- Footer -->
+                <div class="footer">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="text-muted">
+                            &copy; {% now "Y" %} AdminPro. All rights reserved.
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <!-- Bootstrap 5.3 JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    
+    <!-- Custom Scripts -->
+    <script>
+        // Update current date and time
+        function updateDateTime() {
+            const now = new Date();
+            
+            // Format: 08-jan-2026 11:26:22 AM
+            const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+            const day = now.getDate().toString().padStart(2, '0');
+            const month = months[now.getMonth()];
+            const year = now.getFullYear();
+            
+            let hours = now.getHours();
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const seconds = now.getSeconds().toString().padStart(2, '0');
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            
+            hours = hours % 12;
+            hours = hours ? hours : 12; // the hour '0' should be '12'
+            
+            const dateTimeStr = `${day}-${month}-${year} ${hours}:${minutes}:${seconds} ${ampm}`;
+            const datetimeElement = document.getElementById('currentDateTime');
+            if (datetimeElement) {
+                datetimeElement.textContent = dateTimeStr;
+            }
+        }
+        
+        // Update date/time immediately and every second
+        updateDateTime();
+        setInterval(updateDateTime, 1000);
+        
+        // Sidebar toggle for mobile
+        const sidebarToggle = document.querySelector('.sidebar-toggle');
+        const sidebar = document.querySelector('.sidebar');
+        
+        if (sidebarToggle && sidebar) {
+            sidebarToggle.addEventListener('click', () => {
+                sidebar.classList.toggle('active');
+            });
+            
+            // Close sidebar when clicking outside on mobile
+            document.addEventListener('click', (event) => {
+                const isClickInsideSidebar = sidebar.contains(event.target);
+                const isClickOnToggle = sidebarToggle.contains(event.target);
+                
+                if (window.innerWidth <= 992 && !isClickInsideSidebar && !isClickOnToggle && sidebar.classList.contains('active')) {
+                    sidebar.classList.remove('active');
+                }
+            });
+        }
+        
+        // Global search functionality
+        const globalSearch = document.getElementById('globalSearch');
+        if (globalSearch) {
+            globalSearch.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                
+                // This would be connected to your search API in a real application
+                console.log('Searching for:', searchTerm);
+                
+                // You can implement AJAX search here
+                if (searchTerm.length >= 2) {
+                    // Show search results dropdown
+                }
+            });
+        }
+        
+        // Keep submenu open if active
+        document.addEventListener('DOMContentLoaded', function() {
+            // Find active submenu items and expand their parent
+            const activeSubmenuItems = document.querySelectorAll('.submenu-link.active');
+            activeSubmenuItems.forEach(item => {
+                const parentCollapse = item.closest('.collapse');
+                if (parentCollapse) {
+                    const bsCollapse = new bootstrap.Collapse(parentCollapse, {
+                        toggle: false
+                    });
+                    bsCollapse.show();
+                    
+                    // Also add active class to parent nav-link
+                    const parentNavLink = parentCollapse.previousElementSibling;
+                    if (parentNavLink && parentNavLink.classList.contains('nav-link')) {
+                        parentNavLink.classList.add('active');
+                    }
+                }
+            });
+        });
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,35 @@
+<ul class="sidebar-menu">
+
+    <!-- Dashboard -->
+    <li>
+        <a href="/">Dashboard</a>
+    </li>
+
+    <!-- Masters -->
+    {% if perms.masters.view_state or perms.masters.view_district or perms.masters.view_city %}
+    <li class="has-submenu">
+        <a href="javascript:void(0)">Masters</a>
+
+        <ul class="submenu">
+            {% if perms.masters.view_state %}
+            <li>
+                <a href="{% url 'state-list' %}">States</a>
+            </li>
+            {% endif %}
+
+            {% if perms.masters.view_district %}
+            <li>
+                <a href="{% url 'district-list' %}">Districts</a>
+            </li>
+            {% endif %}
+
+            {% if perms.masters.view_city %}
+            <li>
+                <a href="{% url 'city-list' %}">Cities</a>
+            </li>
+            {% endif %}
+        </ul>
+    </li>
+    {% endif %}
+
+</ul>
