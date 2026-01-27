@@ -67,7 +67,27 @@ def district_delete(request, pk):
     messages.success(request, 'District deleted successfully')
     return redirect('district-list')
 
+# def get_districts_by_state(request):
+#     state_id = request.GET.get('state_id')
+#     districts = District.objects.filter(state_id=state_id).values('district_id', 'name')
+#     return JsonResponse(list(districts), safe=False)
+
 def get_districts_by_state(request):
-    state_id = request.GET.get('state_id')
-    districts = District.objects.filter(state_id=state_id).values('district_id', 'name')
-    return JsonResponse(list(districts), safe=False)
+    
+    # Multi-select (state_ids[]=12&state_ids[]=13)
+    state_ids = request.GET.getlist("state_ids[]")
+
+    # Single select (?state_id=12)
+    state_id = request.GET.get("state_id")
+
+    if state_ids:
+        districts = District.objects.filter(state_id__in=state_ids)
+
+    elif state_id:
+        districts = District.objects.filter(state_id=state_id)
+
+    else:
+        return JsonResponse([], safe=False)
+
+    data = list(districts.values("district_id", "name"))
+    return JsonResponse(data, safe=False)

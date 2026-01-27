@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'apps.masters.city',
     'apps.masters.designations',
     'apps.accounts',
+    'apps.users',
     'apps.projects',
     'apps.subunits',
     'apps.form_builder',

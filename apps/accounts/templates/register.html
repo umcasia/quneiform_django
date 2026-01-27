@@ -203,7 +203,12 @@
             <div class="col-md-6">
                 <div class="form-group">
                     <label class="form-label required">Designation</label>
-                    <input type="text" class="form-control" name="designation" placeholder="e.g., Manager, Director" required>
+                    <select name="designation_id" class="form-control" id="designationSelect">
+                        <option value="">-- Select Designation --</option>
+                        {% for d in designations %}
+                            <option value="{{ d.designation_id }}">{{ d.name }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
             </div>
 
@@ -326,7 +331,7 @@
                 { name: 'org_name', element: document.querySelector('[name="org_name"]'), label: 'Organization Name' },
                 { name: 'contact_person', element: document.querySelector('[name="contact_person"]'), label: 'Contact Person' },
                 { name: 'mobile', element: document.querySelector('[name="mobile"]'), label: 'Contact Number' },
-                { name: 'designation', element: document.querySelector('[name="designation"]'), label: 'Designation' },
+                { name: 'designation_id', element: document.querySelector('[name="designation_id"]'), label: 'Designation' },
                 { name: 'email', element: document.querySelector('[name="email"]'), label: 'Admin Email' }
             ];
             
@@ -392,16 +397,16 @@
                 citySelect.innerHTML = '<option value="">-- Select City --</option>';
                 districtSelect.disabled = true;
                 citySelect.disabled = true;
-                
+                console.log('State ID:', stateId);
                 if (stateId) {
-                    fetch(`/api/get-districts/?state_id=${stateId}`)
+                    fetch(`/masters/districts/by-state/?state_id=${stateId}`)
                         .then(response => response.json())
                         .then(data => {
                             districtSelect.innerHTML = '<option value="">-- Select District --</option>';
-                            data.forEach(district => {
+                            data.forEach(d => {
                                 const option = document.createElement('option');
-                                option.value = district.id;
-                                option.textContent = district.name;
+                                option.value = d.district_id;   // ✅ FIXED
+                                option.textContent = d.name;
                                 districtSelect.appendChild(option);
                             });
                             districtSelect.disabled = false;
@@ -418,13 +423,13 @@
                 citySelect.disabled = true;
                 
                 if (districtId) {
-                    fetch(`/api/get-cities/?district_id=${districtId}`)
+                    fetch(`/masters/city/by-district/?district_id=${districtId}`)
                         .then(response => response.json())
                         .then(data => {
                             citySelect.innerHTML = '<option value="">-- Select City --</option>';
                             data.forEach(city => {
                                 const option = document.createElement('option');
-                                option.value = city.id;
+                                option.value = city.city_id;
                                 option.textContent = city.name;
                                 citySelect.appendChild(option);
                             });

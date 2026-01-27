@@ -3,7 +3,9 @@
 {% load static %}
 
 {% block title %}Subunit JSON Schema Form - {{ project.name }}{% endblock %}
+{% block page_title %}Subunits Management{% endblock %}
 
+{% block page_description %}Manage subunits and their details{% endblock %}
 {% block extra_css %}
 <style>
     .drag-over {
@@ -176,14 +178,6 @@
                                                            placeholder="e.g., WPS" maxlength="10">
                                                 </div>
                                             </div>
-                                            <div class="col-md-6">
-                                                <div class="mb-3">
-                                                    <label for="version" class="form-label">Version</label>
-                                                    <input type="text" class="form-control" id="version" name="version" 
-                                                           value="{{ subunit.version|default:'1.0.0' }}" 
-                                                           placeholder="e.g., 1.0.0">
-                                                </div>
-                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -257,19 +251,6 @@
 
                                         <!-- Additional settings -->
                                         <div class="row">
-                                            <div class="col-md-6">
-                                                <div class="mb-3">
-                                                    <div class="form-check form-switch">
-                                                        <input type="checkbox" class="form-check-input" 
-                                                               name="active" id="active" value="1"
-                                                               {% if not subunit or subunit.active %}checked{% endif %}>
-                                                        <label class="form-check-label" for="active">
-                                                            <strong>Active</strong>
-                                                        </label>
-                                                        <div class="form-text">Set subunit status</div>
-                                                    </div>
-                                                </div>
-                                            </div>
                                             <div class="col-md-6">
                                                 <div class="mb-3">
                                                     <div class="form-check form-switch">
@@ -371,7 +352,7 @@
         const jsonSchemaTextarea = document.getElementById('json_schema');
         const formNameInput = document.getElementById('form_name');
         const acronymInput = document.getElementById('acronym');
-        const versionInput = document.getElementById('version');
+        const versionInput = document.getElementById('version') || { value: "" };
         const submitBtn = document.getElementById('submitBtn');
         const formatJsonBtn = document.getElementById('formatJsonBtn');
         const jsonErrorDiv = document.getElementById('jsonError');
@@ -393,9 +374,12 @@
                     acronymInput.value = jsonData.acronym;
                 }
                 
-                if (jsonData.version && !versionInput.value.trim()) {
-                    versionInput.value = jsonData.version;
+                if (jsonData.version && versionInput) {
+                    if (!versionInput.value.trim()) {
+                        versionInput.value = jsonData.version;
+                    }
                 }
+
             } catch (e) {
                 // Ignore errors during auto-update
             }
@@ -447,10 +431,14 @@
                 // Update form fields with JSON data if empty
                 if (!formNameInput.value.trim()) {
                     formNameInput.value = jsonData.form_name;
+                    showError("Form name is required");
+                    return;
                 }
                 
                 if (!acronymInput.value.trim()) {
                     acronymInput.value = jsonData.acronym;
+                    showError("Acronym is required");
+                    return;
                 }
                 
                 if (!versionInput.value.trim() && jsonData.version) {

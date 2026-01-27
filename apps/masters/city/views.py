@@ -76,8 +76,28 @@ def city_delete(request, pk):
     return redirect('city-list')
 
 
-def cities_by_district(request):
-    district_id = request.GET.get('district_id')
-    cities = City.objects.filter(district_id=district_id)
-    data = [{'id': c.id, 'name': c.name} for c in cities]
+# def get_cities_by_district(request):
+#     district_id = request.GET.get("district_id")
+#     cities = City.objects.filter(district_id=district_id).values("city_id", "name")
+#     return JsonResponse(list(cities), safe=False)
+
+def get_cities_by_district(request):
+
+    # Multi-select
+    district_ids = request.GET.getlist("district_ids[]")
+
+    # Single select
+    district_id = request.GET.get("district_id")
+
+    if district_ids:
+        # DO NOT split (already list)
+        cities = City.objects.filter(district_id__in=district_ids)
+
+    elif district_id:
+        cities = City.objects.filter(district_id=district_id)
+
+    else:
+        return JsonResponse([], safe=False)
+
+    data = list(cities.values("city_id", "name"))
     return JsonResponse(data, safe=False)

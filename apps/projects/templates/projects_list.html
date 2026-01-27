@@ -150,7 +150,6 @@
                         <tr>
                             <th>#</th>
                             <th>Organization</th>
-                            <th>Project</th>
                             <th>Contact Person</th>
                             <th>Contact Info</th>
                             <th>Location</th>
@@ -170,12 +169,6 @@
                                         {% comment %} <small class="text-muted">{{ project.email }}</small> {% endcomment %}
                                     </div>
                                 </div>
-                            </td>
-                            <td>
-                                <strong>{{ project.project_name }}</strong><br>
-                                {% if project.gst_no %}
-                                <small class="text-muted">GST: {{ project.gst_no }}</small>
-                                {% endif %}
                             </td>
                             <td>
                                 {{ project.contact_person }}<br>
@@ -451,48 +444,48 @@ $(document).ready(function() {
 </script>
 
 <style>
-.table-hover tbody tr:hover {
-    background-color: #f8f9fa;
-    cursor: pointer;
-}
+    .table-hover tbody tr:hover {
+        background-color: #f8f9fa;
+        cursor: pointer;
+    }
 
-.btn-group .btn {
-    margin-right: 2px;
-}
+    .btn-group .btn {
+        margin-right: 2px;
+    }
 
-.badge {
-    font-size: 0.85em;
-    padding: 0.4em 0.8em;
-}
+    .badge {
+        font-size: 0.85em;
+        padding: 0.4em 0.8em;
+    }
 
-.card {
-    border-radius: 10px;
-    border: none;
-    box-shadow: 0 0 15px rgba(0,0,0,0.05);
-}
+    .card {
+        border-radius: 10px;
+        border: none;
+        box-shadow: 0 0 15px rgba(0,0,0,0.05);
+    }
 
-.card-header {
-    border-bottom: 1px solid #e3e6f0;
-    background-color: #f8f9fc;
-}
+    .card-header {
+        border-bottom: 1px solid #e3e6f0;
+        background-color: #f8f9fc;
+    }
 
-.table th {
-    border-top: none;
-    font-weight: 600;
-    color: #4e73df;
-}
+    .table th {
+        border-top: none;
+        font-weight: 600;
+        color: #4e73df;
+    }
 
-.table td {
-    vertical-align: middle;
-}
+    .table td {
+        vertical-align: middle;
+    }
 
-.modal-header {
-    background-color: #f8f9fc;
-    border-bottom: 1px solid #e3e6f0;
-}
+    .modal-header {
+        background-color: #f8f9fc;
+        border-bottom: 1px solid #e3e6f0;
+    }
 
-.modal-title i {
-    font-size: 1.2em;
-}
+    .modal-title i {
+        font-size: 1.2em;
+    }
 </style>
 {% endblock %}

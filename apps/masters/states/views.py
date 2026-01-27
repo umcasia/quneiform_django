@@ -37,11 +37,17 @@ def state_list(request):
 # @permission_required('masters.add_state', raise_exception=True)
 def state_create(request):
     if request.method == 'POST':
-        State.objects.create(
-            name=request.POST.get('name'),
+        state, created = State.objects.get_or_create(
+            name=request.POST['name'].strip(),
             is_active=True if request.POST.get('is_active') else False
         )
-        messages.success(request, "State created successfully")
+        
+        
+        if created:
+            messages.success(request, "State created successfully")
+        else:
+            messages.warning(request, "Designation already exists")
+        
     return redirect('state-list')
 @login_required
 # @permission_required('masters.change_state', raise_exception=True)

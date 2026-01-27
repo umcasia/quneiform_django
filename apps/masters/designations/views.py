@@ -31,11 +31,16 @@ def designation_list(request):
 @login_required
 def designation_create(request):
     if request.method == 'POST':
-        Designation.objects.create(
-            name=request.POST['name'],
+        designation, created = Designation.objects.get_or_create(
+            name=request.POST['name'].strip(),
             is_active=bool(request.POST.get('is_active'))
         )
-        messages.success(request, 'Designation created successfully')
+        
+        if created:
+            messages.success(request, "Designation created")
+        else:
+            messages.warning(request, "Designation already exists")
+    
     return redirect('designation-list')
 
 @login_required

@@ -3,6 +3,13 @@ from django.db import models
 from django.conf import settings
 from apps.projects.models import Project
 from django.utils import timezone
+from apps.masters.states.models import State
+from apps.masters.districts.models import District
+from apps.masters.city.models import City
+from apps.masters.designations.models import Designation
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 class Subunit(models.Model):
     project = models.ForeignKey(
@@ -51,10 +58,14 @@ class Subunit(models.Model):
         permissions = [
             ('manage_subunit', 'Can manage subunits'),
         ]
+        
+        unique_together = ("project", "name")      # same project cannot have same name
+        constraints = [
+            models.UniqueConstraint(fields=["project", "acronym"], name="unique_project_acronym")
+        ]
 
     def __str__(self):
         return f"{self.name} ({self.acronym})"
-
 
 
 # =====================================================
@@ -62,10 +73,6 @@ class Subunit(models.Model):
 # (Laravel: SubunitTableMapping)
 # =====================================================
 class SubunitTableMapping(models.Model):
-    """
-    Maps questionnaire sections to dynamically created tables
-    """
-
     subunit = models.ForeignKey(
         Subunit,
         on_delete=models.CASCADE,
@@ -112,3 +119,60 @@ class SubunitTableMapping(models.Model):
     def restore(self):
         self.deleted_at = None
         self.save(update_fields=["deleted_at"])
+        
+        
+class Permission(models.Model):
+    name = models.CharField(max_length=255, unique=True)
+    description = models.TextField(null=True, blank=True)
+
+    def __str__(self):
+        return self.name
+
+class SuRole(models.Model):
+    subunit = models.ForeignKey(Subunit, on_delete=models.CASCADE)
+    name = models.CharField(max_length=100)
+    description = models.TextField(null=True, blank=True)
+    superiority = models.IntegerField(default=0)
+
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL
+    )
+
+    def __str__(self):
+        return f"{self.name} ({self.subunit.acronym})"
+
+
+class SuRoleHasPermission(models.Model):
+    role = models.ForeignKey(SuRole, on_delete=models.CASCADE)
+    permission = models.ForeignKey(Permission, on_delete=models.CASCADE)
+
+    class Meta:        
+        unique_together = ("role", "permission")
+
+
+class UserHasSuRole(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    subunit = models.ForeignKey(Subunit, on_delete=models.CASCADE)
+    role = models.ForeignKey(SuRole, on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ("user", "subunit")
+
+class UserHasSuState(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    subunit = models.ForeignKey(Subunit, on_delete=models.CASCADE)
+    state = models.ForeignKey(State, on_delete=models.CASCADE)
+
+class UserHasSuDistrict(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    subunit = models.ForeignKey(Subunit, on_delete=models.CASCADE)
+    district = models.ForeignKey(District, on_delete=models.CASCADE)
+
+class UserHasSuCity(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    subunit = models.ForeignKey(Subunit, on_delete=models.CASCADE)
+    city = models.ForeignKey(City, on_delete=models.CASCADE)
+
+class UserHasSuDesignation(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    designation = models.ForeignKey(Designation, on_delete=models.CASCADE)

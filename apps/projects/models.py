@@ -4,6 +4,7 @@ from django.db import models
 from apps.masters.states.models import State
 from apps.masters.districts.models import District
 from apps.masters.city.models import City
+from apps.masters.designations.models import Designation
 
 def generate_acronym():
     while True:
@@ -29,12 +30,12 @@ class Project(models.Model):
 
     email = models.EmailField()
     contact_person = models.CharField(max_length=255)
-    designation = models.CharField(max_length=255)
     mobile = models.CharField(max_length=15)
 
     state = models.ForeignKey(State, on_delete=models.SET_NULL, null=True, blank=True)
     district = models.ForeignKey(District, on_delete=models.SET_NULL, null=True, blank=True)
     city = models.ForeignKey(City, on_delete=models.SET_NULL, null=True, blank=True)
+    designation = models.ForeignKey(Designation, on_delete=models.SET_NULL, null=True, blank=True)
 
     address = models.TextField(blank=True, null=True)
     gst_no = models.CharField(max_length=20, blank=True, null=True)

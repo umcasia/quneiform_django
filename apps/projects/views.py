@@ -1,176 +1,165 @@
+from django.views import View
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.utils import timezone
 from django.contrib import messages
 from django.contrib.auth import get_user_model
-from .models import Project
+from django.db import transaction
 from django.db.models import Q
 from django.conf import settings
-from django.db import transaction
+
 import string
 import random
 
+from .models import Project
+
 User = get_user_model()
+class AdminRequiredMixin(UserPassesTestMixin):
+    def test_func(self):
+        user = self.request.user
+        return user.is_superuser or user.is_staff
 
-def is_admin(user):
-    return user.is_superuser or user.is_staff
 
-def has_approve_permission(user):
-    if user.is_superuser:
-        return True
-    return user.has_perm("projects.approve_project")
-
+class ApprovePermissionMixin(UserPassesTestMixin):
+    def test_func(self):
+        user = self.request.user
+        return user.is_superuser or user.has_perm("projects.approve_project")
 def generate_unique_acronym():
     while True:
         acronym = ''.join(random.choices(string.ascii_uppercase, k=3))
         if not Project.objects.filter(acronym=acronym).exists():
             return acronym
-        
-@login_required
-@user_passes_test(is_admin)
-def project_list(request):
-    # Get filter parameters
-    status_filter = request.GET.get('status', '')
-    search_query = request.GET.get('search', '')
-    
-    # Start with all projects
-    projects = Project.objects.all()
-    
-    # Apply filters
-    if status_filter:
-        projects = projects.filter(status=status_filter)
-    
-    if search_query:
-        projects = projects.filter(
-            Q(name__icontains=search_query) |
-            Q(project_name__icontains=search_query) |
-            Q(contact_person__icontains=search_query) |
-            Q(email__icontains=search_query) |
-            Q(mobile__icontains=search_query)
-        )
-    
-    # Order by creation date (newest first)
-    projects = projects.order_by('-created_at')
-    
-    # Count by status
-    pending_count = Project.objects.filter(status='pending').count()
-    approved_count = Project.objects.filter(status='approved').count()
-    rejected_count = Project.objects.filter(status='rejected').count()
-    total_count = Project.objects.count()
-    
-    context = {
-        'projects': projects,
-        'status_filter': status_filter,
-        'search_query': search_query,
-        'pending_count': pending_count,
-        'approved_count': approved_count,
-        'rejected_count': rejected_count,
-        'total_count': total_count,
-    }
-    return render(request, 'projects_list.html', context)
-@login_required
-@user_passes_test(is_admin)
-def approve_project(request, pk):
-    if request.method != "POST":
-        return redirect("project_list")
 
-    user = request.user
+class ProjectListView(LoginRequiredMixin, AdminRequiredMixin, View):
+    template_name = "projects_list.html"
 
-    if not has_approve_permission(user):
-        messages.error(request, "Unauthorized")
-        return redirect("project_list")
+    def get(self, request):
+        status_filter = request.GET.get("status", "")
+        search_query = request.GET.get("search", "")
 
-    project = get_object_or_404(Project, pk=pk)
+        projects = Project.objects.all()
 
-    try:
-        with transaction.atomic():
+        if status_filter:
+            projects = projects.filter(status=status_filter)
 
-            # Generate acronym
-            acronym = generate_unique_acronym()
-
-            # Password logic
-            password = "welcome"
-            if not settings.DEBUG:
-                password = User.objects.make_random_password()
-
-            # Create organization admin user
-            org_user, created = User.objects.get_or_create(
-                username=project.email,
-                defaults={
-                    "email": project.email,
-                    "first_name": project.contact_person or project.name,
-                    "is_organization_admin": True,
-                    "is_active": True,
-                    "mobile": project.mobile,
-                    'project_id':project.id,
-                }
+        if search_query:
+            projects = projects.filter(
+                Q(name__icontains=search_query) |
+                Q(project_name__icontains=search_query) |
+                Q(contact_person__icontains=search_query) |
+                Q(email__icontains=search_query) |
+                Q(mobile__icontains=search_query)
             )
 
-            if created:
-                org_user.set_password(password)
-                org_user.save()
+        projects = projects.order_by("-created_at")
 
-            # Update project
-            project.acronym = acronym
-            project.status = "approved"
-            project.is_active = True
-            project.approved_by = user.id 
-            project.approved_at = timezone.now()
-            project.save()
+        context = {
+            "projects": projects,
+            "status_filter": status_filter,
+            "search_query": search_query,
+            "pending_count": Project.objects.filter(status="pending").count(),
+            "approved_count": Project.objects.filter(status="approved").count(),
+            "rejected_count": Project.objects.filter(status="rejected").count(),
+            "total_count": Project.objects.count(),
+        }
 
-            # (Optional) Email
-            # send_mail(...)
+        return render(request, self.template_name, context)
 
-        messages.success(request, "Project approved & admin user created")
+class ApproveProjectView(
+    LoginRequiredMixin,
+    AdminRequiredMixin,
+    ApprovePermissionMixin,
+    View
+):
+    def post(self, request, pk):
+        project = get_object_or_404(Project, pk=pk)
+        user = request.user
 
-    except Exception as e:
-        messages.error(request, str(e))
+        try:
+            with transaction.atomic():
 
-    return redirect("project_list")
+                acronym = generate_unique_acronym()
 
+                password = "welcome"
+                if not settings.DEBUG:
+                    password = User.objects.make_random_password()
 
-@login_required
-@user_passes_test(is_admin)
-def reject_project(request, pk):
-    if request.method != "POST":
+                org_user, created = User.objects.get_or_create(
+                    username=project.email,
+                    defaults={
+                        "email": project.email,
+                        "first_name": project.contact_person or project.name,
+                        "is_organization_admin": True,
+                        "is_active": True,
+                        "mobile": project.mobile,
+                        "project_id": project.id,
+                    }
+                )
+
+                if created:
+                    org_user.set_password(password)
+                    org_user.save()
+
+                project.acronym = acronym
+                project.status = "approved"
+                project.is_active = True
+                project.approved_by = user.id
+                project.approved_at = timezone.now()
+                project.save()
+
+            messages.success(
+                request,
+                "Project approved & admin user created successfully"
+            )
+
+        except Exception as e:
+            messages.error(request, str(e))
+
         return redirect("project_list")
 
-    user = request.user
+class RejectProjectView(
+    LoginRequiredMixin,
+    AdminRequiredMixin,
+    ApprovePermissionMixin,
+    View
+):
+    def post(self, request, pk):
+        project = get_object_or_404(Project, pk=pk)
+        user = request.user
 
-    if not has_approve_permission(user):
-        messages.error(request, "Unauthorized")
+        project.status = "rejected"
+        project.is_active = False
+        project.approved_by = user.id
+        project.approved_at = timezone.now()
+        project.save()
+
+        messages.success(request, "Project rejected successfully")
         return redirect("project_list")
 
-    project = get_object_or_404(Project, pk=pk)
+class RejectProjectView(
+    LoginRequiredMixin,
+    AdminRequiredMixin,
+    ApprovePermissionMixin,
+    View
+):
+    def post(self, request, pk):
+        project = get_object_or_404(Project, pk=pk)
+        user = request.user
 
-    project.status = "rejected"
-    project.is_active = False
-    project.approved_by = user.id 
-    project.approved_at = timezone.now()
-    project.save()
+        project.status = "rejected"
+        project.is_active = False
+        project.approved_by = user.id
+        project.approved_at = timezone.now()
+        project.save()
 
-    messages.success(request, "Project rejected successfully")
-    return redirect("project_list")
+        messages.success(request, "Project rejected successfully")
+        return redirect("project_list")
 
-@login_required
-@user_passes_test(is_admin)
-def project_detail(request, pk):
-    project = get_object_or_404(Project, pk=pk)
-    return render(request, 'project_detail.html', {'project': project})
-def create_project_admin_user(project):
-    User = get_user_model()
+class ProjectDetailView(LoginRequiredMixin, AdminRequiredMixin, View):
+    template_name = "project_detail.html"
 
-    if User.objects.filter(email=project.email).exists():
-        return
-
-    user = User.objects.create_user(
-        username=project.email,
-        email=project.email,
-        password='welcome',
-        first_name=project.contact_person,
-        is_active=True,
-        is_staff=True
-    )
-
-    user.must_change_password = True
-    user.save()
+    def get(self, request, pk):
+        project = get_object_or_404(Project, pk=pk)
+        return render(request, self.template_name, {
+            "project": project
+        })

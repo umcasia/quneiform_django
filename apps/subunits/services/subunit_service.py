@@ -10,18 +10,10 @@ from apps.subunits.models import (
 
 
 class SubunitService:
-    """
-    Django equivalent of Laravel SubunitService
-    """
 
     @staticmethod
     @transaction.atomic
     def assign_locations(user_id: int, subunit_id: int):
-        """
-        Laravel equivalent:
-
-        State::chunk(500, function ($states) { ... })
-        """
 
         # -----------------------------
         # Chunk States (memory safe)

@@ -13,7 +13,6 @@ from apps.projects.models import Project
 @login_required
 @permission_required('subunits.manage_subunit', raise_exception=True)
 def form_builder(request, project_id, subunit_id=None):
-    """Main form builder view"""
     project = get_object_or_404(Project, id=project_id)
     
     context = {
@@ -31,7 +30,6 @@ def form_builder(request, project_id, subunit_id=None):
 @login_required
 @require_POST
 def save_draft(request):
-    """Save a form draft"""
     try:
         data = json.loads(request.body)
         
@@ -64,7 +62,6 @@ def save_draft(request):
 @login_required
 @require_POST
 def auto_save_draft(request):
-    """Auto-save draft functionality"""
     try:
         data = json.loads(request.body)
         
@@ -100,7 +97,6 @@ def auto_save_draft(request):
 @login_required
 @require_GET
 def get_auto_save_draft(request):
-    """Get auto-saved draft"""
     try:
         draft = FormDraft.objects.filter(
             user=request.user,
@@ -139,7 +135,6 @@ def get_auto_save_draft(request):
 @login_required
 @require_POST
 def delete_auto_save_draft(request):
-    """Delete auto-save draft"""
     try:
         FormDraft.objects.filter(
             user=request.user,
@@ -160,7 +155,6 @@ def delete_auto_save_draft(request):
 @login_required
 @require_GET
 def list_drafts(request):
-    """List all drafts for the user"""
     try:
         drafts = FormDraft.objects.filter(
             user=request.user,
@@ -193,7 +187,6 @@ def list_drafts(request):
 @login_required
 @require_GET
 def load_draft(request, draft_id):
-    """Load a specific draft"""
     try:
         draft = get_object_or_404(FormDraft, id=draft_id, user=request.user)
         
@@ -222,7 +215,6 @@ def load_draft(request, draft_id):
 @login_required
 @require_POST
 def delete_draft(request, draft_id):
-    """Delete a draft"""
     try:
         draft = get_object_or_404(FormDraft, id=draft_id, user=request.user)
         draft.delete()
@@ -242,7 +234,6 @@ def delete_draft(request, draft_id):
 @permission_required('subunits.manage_subunit', raise_exception=True)
 @require_POST
 def submit_form_schema(request, project_id, subunit_id=None):
-    """Submit the form schema to create/update a subunit"""
     try:
         project = get_object_or_404(Project, id=project_id)
         

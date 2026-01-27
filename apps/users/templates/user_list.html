@@ -1,0 +1,214 @@
+<!-- templates/users/project_list.html -->
+{% extends 'base.html' %}
+
+{% block title %}Users Management{% endblock %}
+
+{% block header_title %}Users Data{% endblock %}
+
+{% block page_title %}Users Management{% endblock %}
+
+{% block page_description %}Manage Users and their details{% endblock %}
+
+{% block page_header_actions %}
+{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-project-diagram mr-2"></i> Users Management
+        </h1>
+    </div>
+
+
+    <!-- Filters Card -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-filter mr-1"></i> Filters
+            </h6>
+        </div>
+        <div class="card-body">
+            <form method="get" class="form-inline">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label for="search" class="sr-only">Search</label>
+                        <input type="text" class="form-control" id="search" name="search" 
+                            placeholder="Search users..." value="{{ search_query }}">
+                    </div>
+                    <div class="col-md-4">
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary mb-2">
+                                <i class="fas fa-search mr-1"></i> Filter
+                            </button>
+                            <a href="{% url 'user_list' %}" class="btn btn-secondary mb-2 ml-2">
+                                <i class="fas fa-redo mr-1"></i> Clear
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+        <!-- Users Table -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-list mr-1"></i> Users List
+            </h6>
+            
+            <span class="badge badge-primary">Showing {{ users|length }} users</span>
+            <a href="{% url 'user_create' %}" class="btn btn-primary">
+                <i class="fas fa-user-plus me-2"></i> Add User
+            </a>
+
+        </div>
+        <div class="card-body">
+            {% if users %}
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" id="dataTable" width="100%" cellspacing="0">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>#</th>
+                            <th>Users</th>
+                            <th>Contact Info</th>
+                            <th>Registered</th>
+                            <th>Designation</th>
+                            {% comment %} <th>Actions</th> {% endcomment %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for project in users %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div>
+                                        <strong>{{ project.username }}</strong><br>
+                                        <small class="text-muted">{{ project.first_name }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <i class="fas fa-phone text-muted mr-1"></i> {{ project.mobile }}<br>
+                                <i class="fas fa-envelope text-muted mr-1"></i> {{ project.email }}
+                            </td>
+                            <td>
+                                {{ project.created_at|date:"d/m/Y" }}<br>
+                                <small class="text-muted">{{ project.created_at|timesince }} ago</small>
+                            </td>
+                            <td>{{ project.designation_id }}</td>
+                            {% comment %} <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'project_detail' project.id %}" 
+                                       class="btn btn-sm btn-info" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    
+                                    {% if user.is_organization_admin or perms.subunits.manage_subunit %}
+                                    <a href="{% url 'subunit_list' project.id %}"
+                                    class="btn btn-sm btn-primary"
+                                    title="Manage Subunits">
+                                        <i class="fas fa-layer-group"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td> {% endcomment %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+                <h4 class="text-muted">No users found</h4>
+                <p class="text-muted">Try adjusting your filters or check back later</p>
+                <a href="{% url 'project_list' %}" class="btn btn-primary">
+                    <i class="fas fa-redo mr-1"></i> Clear Filters
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Initialize DataTable
+    $('#dataTable').DataTable({
+        "pageLength": 25,
+        "order": [[0, 'asc']],
+        "language": {
+            "search": "Search within table:",
+            "lengthMenu": "Show _MENU_ entries",
+            "info": "Showing _START_ to _END_ of _TOTAL_ entries",
+            "paginate": {
+                "previous": "<i class='fas fa-chevron-left'></i>",
+                "next": "<i class='fas fa-chevron-right'></i>"
+            }
+        }
+    });
+
+
+    
+    // Add confirmation for deactivation
+    $('.btn-warning').click(function(e) {
+        e.preventDefault();
+        if (!confirm('Are you sure you want to deactivate this organization? They will lose access to the system.')) {
+            return false;
+        }
+    });
+});
+</script>
+
+<style>
+    .table-hover tbody tr:hover {
+        background-color: #f8f9fa;
+        cursor: pointer;
+    }
+
+    .btn-group .btn {
+        margin-right: 2px;
+    }
+
+    .badge {
+        font-size: 0.85em;
+        padding: 0.4em 0.8em;
+    }
+
+    .card {
+        border-radius: 10px;
+        border: none;
+        box-shadow: 0 0 15px rgba(0,0,0,0.05);
+    }
+
+    .card-header {
+        border-bottom: 1px solid #e3e6f0;
+        background-color: #f8f9fc;
+    }
+
+    .table th {
+        border-top: none;
+        font-weight: 600;
+        color: #4e73df;
+    }
+
+    .table td {
+        vertical-align: middle;
+    }
+
+    .modal-header {
+        background-color: #f8f9fc;
+        border-bottom: 1px solid #e3e6f0;
+    }
+
+    .modal-title i {
+        font-size: 1.2em;
+    }
+</style>
+{% endblock %}
