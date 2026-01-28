@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Q
 from django.conf import settings
-
+from apps.subunits.models import (UserHasSuDesignation)
 import string
 import random
 
@@ -93,6 +93,7 @@ class ApproveProjectView(
                         "is_active": True,
                         "mobile": project.mobile,
                         "project_id": project.id,
+                        "designation_id": project.designation_id,
                     }
                 )
 
@@ -106,6 +107,12 @@ class ApproveProjectView(
                 project.approved_by = user.id
                 project.approved_at = timezone.now()
                 project.save()
+                
+                if project.designation_id:
+                    UserHasSuDesignation.objects.create(
+                        user=user,
+                        designation_id=project.designation_id
+                    )
 
             messages.success(
                 request,

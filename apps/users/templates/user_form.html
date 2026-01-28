@@ -1,281 +1,290 @@
+<!-- templates/users/create.html -->
 {% extends 'base.html' %}
 {% load static %}
 
 {% block title %}Create User{% endblock %}
-{% block page_title %}Users Management{% endblock %}
-{% block page_description %}Create and manage system users{% endblock %}
+{% block page_title %}Create User{% endblock %}
+{% block page_description %}Create a new system user with roles and location access{% endblock %}
 
 {% block extra_css %}
-
+<link href="https://cdn.jsdelivr.net/npm/sumoselect@3.0.3/sumoselect.min.css" rel="stylesheet">
 <style>
-    .drag-over {
-        border: 2px dashed #0d6efd;
-        background-color: rgba(13, 110, 253, 0.1);
+    /* 加载器样式 */
+    .loader-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 9999;
+        display: none;
     }
-    .drag-handle {
-        cursor: move;
-        color: #6c757d;
+
+    .loader {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        border: 8px solid #f3f3f3;
+        border-top: 8px solid #3498db;
+        border-radius: 50%;
+        width: 80px;
+        height: 80px;
+        animation: spin 1s linear infinite;
     }
-    .section-title {
+
+    @keyframes spin {
+        0% { transform: translate(-50%, -50%) rotate(0deg); }
+        100% { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+
+    /* 自定义卡片样式 */
+    .custom-card {
+        border: 1px solid #dee2e6;
+        border-radius: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .custom-card-header {
+        background-color: #f8f9fa;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    /* 表单样式 */
+    .form-label {
         font-weight: 600;
     }
-    .control-type-badge {
-        font-size: 0.75rem;
-        padding: 0.25rem 0.5rem;
-        border-radius: 0.25rem;
-        background-color: #6c757d;
-        color: white;
-        margin-left: 0.5rem;
-    }
-    .empty-state {
-        text-align: center;
-        padding: 2rem;
-        color: #6c757d;
-    }
-    .empty-state.small {
-        padding: 1rem;
-    }
-    .empty-state.small i {
-        font-size: 1.5rem;
-    }
-    .property-group {
-        margin-top: 1rem;
-        padding-top: 1rem;
-        border-top: 1px solid #dee2e6;
-    }
-    .option {
-        display: flex;
-        gap: 0.5rem;
-        margin-bottom: 0.5rem;
-        align-items: center;
-    }
-    .option input {
-        flex: 1;
-    }
-    .form-section, .form-builder-container {
-        background-color: #f8f9fa;
-        padding: 1.5rem;
-        border-radius: 0.5rem;
-        margin-bottom: 1.5rem;
-    }
-    .preview-container {
-        background-color: #f8f9fa;
-        padding: 1.5rem;
-        border-radius: 0.5rem;
-        margin-top: 1.5rem;
-    }
-    #jsonOutput {
-        background-color: #2b3035;
-        color: #e9ecef;
-        padding: 1rem;
-        border-radius: 0.25rem;
-        max-height: 400px;
-        overflow-y: auto;
-    }
-    .card-header {
-        background-color: rgba(0, 0, 0, 0.03);
-    }
-    .nested-section {
-        margin-left: 1rem;
-        border-left: 3px solid #0d6efd;
-    }
-    .control-card {
-        margin-bottom: 0.75rem;
-    }
-    .childrenContainer {
-        min-height: 50px;
-        padding: 0.5rem;
-        border: 1px dashed #dee2e6;
-        border-radius: 0.25rem;
-        margin-bottom: 0.5rem;
-    }
-    .condition-group {
-        border-left: 3px solid #0d6efd;
-        padding-left: 15px;
-        margin-bottom: 15px;
-    }
-    .condition-item {
-        background-color: #f8f9fa;
-        padding: 10px;
-        border-radius: 5px;
-        margin-bottom: 10px;
-        border: 1px solid #dee2e6;
-    }
-    .condition-actions {
-        margin-top: 10px;
-    }
-    .logic-relation {
+
+    .required::after {
+        content: " *";
+        color: red;
         font-weight: bold;
-        margin: 10px 0;
-        padding: 5px;
-        background-color: #e9ecef;
-        border-radius: 4px;
+    }
+
+    /* 多选框样式增强 */
+    .SumoSelect {
+        width: 100% !important;
+    }
+
+    /* 错误信息样式 */
+    .invalid-feedback {
+        display: block;
+        color: #dc3545;
+        font-size: 0.875em;
+        margin-top: 0.25rem;
+    }
+
+    /* 子单元卡片样式 */
+    .subunit-card {
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        margin-bottom: 1.5rem;
+        background: #fff;
+    }
+
+    .subunit-header {
+        background-color: #f8f9fa;
+        padding: 1rem;
+        border-bottom: 1px solid #dee2e6;
+        font-weight: 600;
+        color: #495057;
+    }
+
+    .subunit-body {
+        padding: 1.25rem;
     }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4">
-
-    <!-- Back Button -->
+    
     <div class="mb-4">
-        <a href="{% url 'user_list' %}" class="btn btn-outline-secondary btn-sm">
+        <a href="{% url 'user_list' %}" class="btn btn-outline-secondary">
             <i class="fas fa-arrow-left me-2"></i> Back to Users
         </a>
     </div>
 
-    <div class="container py-4">
+    <div class="loader-overlay" id="loader-overlay">
+        <div class="loader"></div>
+    </div>
 
-        {% if messages %}
-        <div class="mb-4">
-            {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-            {% endfor %}
+    <div id="success-message" class="alert alert-success" style="display: none;"></div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Add User</h5>
         </div>
-        {% endif %}
-
-        <form method="POST">
-            {% csrf_token %}
-
-            <div class="form-section border">
-                <div class="row g-3">
-
-                    <!-- ================= BASIC USER INFO ================= -->
-                    <div class="col-md-12 mb-2">
-                        <h5><i class="fas fa-user me-2"></i>Basic Information</h5>
+        <div class="card-body">
+            <form id="addForm" name="addForm">
+                {% csrf_token %}
+                
+                <div class="row mb-4">
+                    <div class="col-md-12 mb-3">
+                        <h6 class="text-primary"><i class="fas fa-user me-2"></i>Basic Information</h6>
                     </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label">Name *</label>
-                        <input type="text" name="name" class="form-control" required>
+                    
+                    <div class="col-md-4 mb-3">
+                        <label for="addName" class="form-label required">Name</label>
+                        <input type="text" class="form-control" id="addName" name="name" placeholder="Name">
+                        <div class="invalid-feedback" id="addName-error"></div>
                     </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label">Username *</label>
-                        <input type="text" name="username" class="form-control" required>
+                    
+                    <div class="col-md-4 mb-3">
+                        <label for="addUsername" class="form-label required">Username</label>
+                        <input type="text" class="form-control" id="addUsername" name="username" 
+                               placeholder="Only Alphanumerics, underscores _, and @ are allowed">
+                        <div class="invalid-feedback" id="addUsername-error"></div>
                     </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label">Email *</label>
-                        <input type="email" name="email" class="form-control" required>
+                    
+                    <div class="col-md-4 mb-3">
+                        <label for="addEmail" class="form-label required">Email</label>
+                        <input type="email" class="form-control" id="addEmail" name="email" placeholder="Email">
+                        <div class="invalid-feedback" id="addEmail-error"></div>
                     </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label">Mobile *</label>
-                        <input type="text" name="mobile" class="form-control">
+                    
+                    <div class="col-md-4 mb-3">
+                        <label for="addMobile" class="form-label required">Mobile</label>
+                        <input type="text" class="form-control" id="addMobile" name="mobile" placeholder="Mobile">
+                        <div class="invalid-feedback" id="addMobile-error"></div>
                     </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label">Password *</label>
-                        <input type="password" name="password" class="form-control" required>
+                    
+                    <div class="col-md-4 mb-3">
+                        <label for="addPassword" class="form-label required">Password</label>
+                        <input type="password" class="form-control" id="addPassword" name="password" placeholder="Password">
+                        <small class="text-muted">Must contain at least 8 characters with uppercase, lowercase, number, and special character</small>
+                        <div class="invalid-feedback" id="addPassword-error"></div>
                     </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label">Designation*</label>
-                        <select name="designation_id" class="form-control" id="designationSelect">
+                    
+                    <div class="col-md-4 mb-3">
+                        <label for="designation" class="form-label required">Designation</label>
+                        <select name="designation_id" class="form-control" id="designation_id">
                             <option value="">-- Select Designation --</option>
                             {% for d in designations %}
                                 <option value="{{ d.designation_id }}">{{ d.name }}</option>
                             {% endfor %}
                         </select>
-                    </div>
-
-                    <div class="border my-3"></div>
-                    <!-- ================= ROLE ASSIGNMENT ================= -->
-                    <div class="col-md-12 mb-2">
-                        <h5><i class="fas fa-user-shield me-2"></i>Role Assignment</h5>
-                    </div>
-
-                     <div class="col-md-6">
-                        <label class="form-label">Subunit</label>
-                        <select name="subunit_id" class="form-control">
-                            <option value="">Select Subunit</option>
-                            {% for s in subunits %}
-                                <option value="{{ s.id }}">{{ s.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="col-md-6">
-                        <label class="form-label">Role</label>
-                        <select name="role_id" class="form-control">
-                            <option value="">Select Role</option>
-                            {% for r in roles %}
-                                <option value="{{ r.id }}">{{ r.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="border my-3"></div>
-
-                    <!-- ================= LOCATION ACCESS ================= -->
-                    <div class="col-md-12 mb-2">
-                        <h5><i class="fas fa-map-marker-alt me-2"></i>Location Access</h5>
-                    </div>
-
-                    <div class="col-md-4">
-                        <label class="form-label">States</label>
-                        <select name="states" id="stateSelect" class="form-control select-multi" multiple>
-                            {% for s in states %}
-                                <option value="{{ s.state_id }}">{{ s.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="col-md-4">
-                        <label class="form-label">Districts</label>
-                        {% comment %} <select name="districts" class="form-control select-multi" multiple>
-                            {% for d in districts %}
-                                <option value="{{ d.district_id }}">{{ d.name }}</option>
-                            {% endfor %}
-                        </select> {% endcomment %}
-                        <select name="districts" id="districtSelect" class="form-control select-multi" multiple></select>
-                    </div>
-
-                    <div class="col-md-4">
-                        <label class="form-label">Cities</label>
-                        {% comment %} <select name="cities" class="form-control select-multi" multiple>
-                            {% for c in cities %}
-                                <option value="{{ c.city_id }}">{{ c.name }}</option>
-                            {% endfor %}
-                        </select> {% endcomment %}
-                        <select name="cities" id="citySelect" class="form-control select-multi" multiple></select>
+                        <div class="invalid-feedback" id="designation_id-error"></div>
                     </div>
                     
-                    <!-- ================= SUBMIT ================= -->
-                    <div class="col-md-12 text-end mt-3">
-                        <button type="submit" class="btn btn-success px-4">
-                            <i class="fas fa-save me-1"></i> Create User
+                    {% if user.is_superuser %}
+                    <div class="col-md-12 mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="true" id="addSuperadmin">
+                            <label class="form-check-label" for="addSuperadmin">
+                                Superadmin (<span class="text-danger">Select only if you want this user to be Superadmin</span>)
+                            </label>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-12 mb-3">
+                        <div class="custom-card">
+                            <div class="custom-card-header">
+                                <div class="col-md-12 mb-3">
+                                    <h6 class="text-primary"><i class="fas fa-map-marker-alt me-2"></i>Location Access</h6>
+                                </div>
+                            </div>
+                            <div class="p-2">
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <label for="addStateId" class="form-label">States</label>
+                                        <select name="states[]" id="addStateId" multiple class="state-select form-control select-multi">
+                                            {% for state in states %}
+                                            <option value="{{ state.state_id }}">{{ state.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        <div class="invalid-feedback" id="addState-error"></div>
+                                    </div>
+                                    
+                                    <div class="col-md-4 mb-3">
+                                        <label for="addDistrictId" class="form-label">Districts</label>
+                                        <select name="districts[]" id="addDistrictId" multiple class="district-select form-control select-multi"></select>
+                                        <div class="invalid-feedback" id="addDistrict-error"></div>
+                                    </div>
+                                    
+                                    <div class="col-md-4 mb-3">
+                                        <label for="addCityId" class="form-label">City</label>
+                                        <select name="cities[]" id="addCityId" multiple class="city-select form-control select-multi"></select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-12 mb-3">
+                        <h6 class="text-primary"><i class="fas fa-user-shield me-2"></i>Subunit Role Assignment</h6>
+                    </div>
+                    
+                    {% for subunit in subunits_with_roles %}
+                    <div class="col-md-6 mb-3">
+                        <div class="subunit-card">
+                            <div class="subunit-header">
+                                {{ subunit.name }} ({{ subunit.acronym }})
+                            </div>
+                            <div class="subunit-body">
+                                <label class="form-label required">Role</label>
+                                <select name="subunit[{{ subunit.id }}][roles]" 
+                                        class="form-select su-role-select" 
+                                        data-subunit-id="{{ subunit.id }}" 
+                                        required>
+                                    <option value="" selected disabled>Please assign a role</option>
+                                    {% for role in subunit.roles %}
+                                    <option value="{{ role.id }}">
+                                        {{ role.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="invalid-feedback" id="role-{{ subunit.id }}-error"></div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-12">
+                        <button type="submit" class="btn btn-primary" id="submit-user-btn">
+                            <i class="fas fa-save me-2"></i> Create User
                         </button>
                     </div>
-
                 </div>
-            </div>
-
-        </form>
+            </form>
+        </div>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sumoselect@3.0.3/jquery.sumoselect.min.js"></script>
 <script>
-    $(document).ready(function(){
-
-        $('#stateSelect').select2();
-        $('#districtSelect').select2();
-        $('#citySelect').select2();
+    $(document).ready(function() {
+        function showLoader() {
+            $('#loader-overlay').fadeIn();
+        }
+        
+        function hideLoader() {
+            $('#loader-overlay').fadeOut();
+        }
+        
+        $('.state-select').select2();
+        $('.district-select').select2();
+        $('.city-select').select2();
 
         // STATE → DISTRICT
-        $('#stateSelect').on('change', function () {
+        $('.state-select').on('change', function () {
 
             let stateIds = $(this).val(); // ARRAY
             console.log("Selected states:", stateIds);
 
-            $('#districtSelect').empty();
-            $('#citySelect').empty();
+            $('.district-select').empty();
+            $('.city-select').empty();
 
             if (!stateIds || stateIds.length === 0) return;
 
@@ -284,23 +293,23 @@
                 console.log("District API Response:", data);
 
                 data.forEach(function(d){
-                    $('#districtSelect').append(
+                    $('.district-select').append(
                         `<option value="${d.district_id}">${d.name}</option>`
                     );
                 });
 
-                $('#districtSelect').trigger('change');
+                $('.district-select').trigger('change');
             });
         });
 
 
         // DISTRICT → CITY
-        $('#districtSelect').on('change', function () {
+        $('.district-select').on('change', function () {
 
             let districtIds = $(this).val();
             console.log("Selected districts:", districtIds);
 
-            $('#citySelect').empty();
+            $('.city-select').empty();
 
             if (!districtIds || districtIds.length === 0) return;
 
@@ -309,18 +318,126 @@
                 console.log("City API Response:", data);
 
                 data.forEach(function(c){
-                    $('#citySelect').append(
+                    $('.city-select').append(
                         `<option value="${c.city_id}">${c.name}</option>`
                     );
                 });
 
-                $('#citySelect').trigger('change');
+                $('.city-select').trigger('change');
             });
         });
-
+        
+        $('#addForm').submit(function(e) {
+            e.preventDefault();
+            
+            var button = $('#submit-user-btn');
+            var originalText = button.html();
+            button.prop('disabled', true);
+            button.html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Creating...');
+            
+            $('.invalid-feedback').empty();
+            $('.form-control, .form-select').removeClass('is-invalid');
+            
+            var formData = {};
+            formData['name'] = $('#addName').val();
+            formData['username'] = $('#addUsername').val();
+            formData['email'] = $('#addEmail').val();
+            formData['mobile'] = $('#addMobile').val();
+            formData['password'] = $('#addPassword').val();
+            formData['designation_id'] = $('#designation_id').val();
+            
+            var isSuperadminChecked = $('#addSuperadmin').prop('checked');
+            formData['superadmin'] = isSuperadminChecked ? 'true' : 'false';
+            
+            formData['roles'] = [];
+            formData['subunit'] = {};
+            
+            $('.su-role-select').each(function() {
+                let subunitId = $(this).data('subunit-id');
+                let roleId = $(this).val();
+                
+                if (roleId) {
+                    formData.subunit[subunitId] = {
+                        "roles": roleId,
+                        "subunit_id": subunitId
+                    };
+                }
+            });
+            
+            formData['states'] = $('#addStateId').val();
+            formData['districts'] = $('#addDistrictId').val();
+            formData['cities'] = $('#addCityId').val();
+            
+            showLoader();
+            $.ajax({
+                type: "POST",
+                url: "{% url 'user_create' %}",
+                contentType: "application/json",
+                data: JSON.stringify(formData),
+                headers: {
+                    'X-CSRFTOKEN': '{{ csrf_token }}'
+                },
+                success: function(response) {
+                    hideLoader();
+                    button.prop('disabled', false);
+                    button.html(originalText);
+                    
+                    if (response.status == 200) {
+                        $('#success-message').text(response.description).fadeIn();
+                        
+                        setTimeout(function() {
+                            window.location.href = "{% url 'user_list' %}";
+                        }, 3000);
+                    }
+                },
+                error: function(xhr) {
+                    hideLoader();
+                    button.prop('disabled', false);
+                    button.html(originalText);
+                    
+                    if (xhr.status == 422) {
+                        var errors = xhr.responseJSON.errors;
+                        
+                        for (var field in errors) {
+                            var errorElement = $('#' + field + '-error');
+                            var inputElement = $('[name="' + field + '"]');
+                            
+                            if (errorElement.length && inputElement.length) {
+                                inputElement.addClass('is-invalid');
+                                errorElement.text(errors[field].join(' | '));
+                            } else if (field === 'name') {
+                                $('#addName').addClass('is-invalid');
+                                $('#addName-error').text(errors[field].join(' | '));
+                            } else if (field === 'username') {
+                                $('#addUsername').addClass('is-invalid');
+                                $('#addUsername-error').text(errors[field].join(' | '));
+                            } else if (field === 'email') {
+                                $('#addEmail').addClass('is-invalid');
+                                $('#addEmail-error').text(errors[field].join(' | '));
+                            } else if (field === 'mobile') {
+                                $('#addMobile').addClass('is-invalid');
+                                $('#addMobile-error').text(errors[field].join(' | '));
+                            } else if (field === 'password') {
+                                $('#addPassword').addClass('is-invalid');
+                                $('#addPassword-error').text(errors[field].join(' | '));
+                            } else if (field === 'states') {
+                                $('#addStateId').addClass('is-invalid');
+                                $('#addState-error').text(errors[field].join(' | '));
+                            } else if (field === 'districts') {
+                                $('#addDistrictId').addClass('is-invalid');
+                                $('#addDistrict-error').text(errors[field].join(' | '));
+                            } else if (field === 'roles') {
+                                $('.su-role-select').addClass('is-invalid');
+                                $('.su-role-select').next('.invalid-feedback').text(errors[field].join(' | '));
+                            }
+                        }
+                    } else {
+                        alert('An error occurred while creating the user. Please try again.');
+                        console.error("Create user error: ", xhr);
+                    }
+                }
+            });
+        });
     });
 </script>
-
-
-
 {% endblock %}
