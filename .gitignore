@@ -1,1 +1,26 @@
-/venv
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+
+# Virtualenv
+.venv/
+.env
+
+
+# VS Code / IDE
+.vscode/
+.idea/
+*.swp
+
+
+#migrations
+# apps/accounts/migrations/
+# apps/masters/states/migrations/
+# apps/masters/districts/migrations/
+# apps/masters/city/migrations/
+# apps/masters/designations/migrations/
+# apps/projects/migrations/
+# apps/subunits/migrations/
+# apps/users/migrations/
