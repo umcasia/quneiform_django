@@ -20,6 +20,9 @@ urlpatterns = [
     path('masters/districts/', include('apps.masters.districts.urls')),
     path('masters/city/', include('apps.masters.city.urls')),
     path('masters/designations/', include('apps.masters.designations.urls')),
+
+    path('survey/', include('apps.surveys.urls')),
+
 ]
 
 urlpatterns += static(

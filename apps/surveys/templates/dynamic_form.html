@@ -1,0 +1,221 @@
+<!-- templates/forms/dynamic_form.html -->
+{% extends 'base.html' %}
+
+{% block extra_css %}
+<!-- Flatpickr for datepicker (Bootstrap 5 compatible) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_blue.css">
+<style>
+    /* Custom styles for form */
+    .section-title {
+        color: #2c3e50;
+        border-bottom: 2px solid #3498db;
+        padding-bottom: 10px;
+        margin-bottom: 25px;
+    }
+    
+    .question-number {
+        font-weight: bold;
+        color: #e74c3c;
+        background: #f8f9fa;
+        padding: 2px 8px;
+        border-radius: 4px;
+        margin-right: 5px;
+    }
+    
+    .form-label {
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #34495e;
+    }
+    
+    .accordion-button:not(.collapsed) {
+        background-color: #3498db;
+        color: white;
+        font-weight: 600;
+    }
+    
+    .accordion-button:focus {
+        box-shadow: 0 0 0 0.25rem rgba(52, 152, 219, 0.25);
+        border-color: #3498db;
+    }
+    
+    .nav-tabs .nav-link {
+        color: #7f8c8d;
+        font-weight: 500;
+        border: none;
+        padding: 10px 20px;
+    }
+    
+    .nav-tabs .nav-link.active {
+        color: #3498db;
+        border-bottom: 3px solid #3498db;
+        background: transparent;
+    }
+    
+    .tab-content {
+        padding: 20px;
+        border: 1px solid #dee2e6;
+        border-top: none;
+        border-radius: 0 0 0.375rem 0.375rem;
+    }
+    
+    .single-section {
+        padding: 20px;
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        background: white;
+    }
+    
+    /* Style for date input */
+    .flatpickr-input {
+        background-color: white;
+        cursor: pointer;
+    }
+    
+    /* Required field indicator */
+    .text-danger {
+        color: #e74c3c !important;
+        margin-left: 3px;
+    }
+    
+    /* Form validation styles */
+    .is-invalid {
+        border-color: #e74c3c !important;
+    }
+    
+    .invalid-feedback {
+        display: block;
+        color: #e74c3c;
+        font-size: 0.875em;
+        margin-top: 0.25rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h3 class="card-title mb-0">{{ subunit.name }} - Form</h3>
+                            <p class="text-muted mb-0">{{ subunit.project.name }}</p>
+                        </div>
+                        {% if submission %}
+                        <div>
+                            <span class="badge bg-{% if submission.status == 'approved' %}success{% elif submission.status == 'rejected' %}danger{% elif submission.status == 'pending_review' %}warning{% else %}info{% endif %} fs-6">
+                                {{ submission.get_status_display }}
+                            </span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data" id="dynamic-form" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        
+                        {{ form_html|safe }}
+                        
+                        <div class="form-group mt-5 pt-4 border-top">
+                            <div class="d-flex justify-content-between">
+                                <button type="submit" class="btn btn-primary btn-lg px-5">
+                                    <i class="fas fa-paper-plane me-2"></i> Submit Form
+                                </button>
+                                
+                                <div>
+                                    
+                                    <button type="button" class="btn btn-outline-info" id="save-draft">
+                                        <i class="fas fa-save me-2"></i> Save as Draft
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Flatpickr for datepicker -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize datepickers
+        const dateInputs = document.querySelectorAll('input[type="date"], .datepicker');
+        dateInputs.forEach(input => {
+            flatpickr(input, {
+                dateFormat: "Y-m-d",
+                allowInput: true,
+                clickOpens: true,
+                theme: "material_blue"
+            });
+        });
+        
+        // Form validation
+        const form = document.getElementById('dynamic-form');
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        }, false);
+        
+        // Save as draft functionality
+        document.getElementById('save-draft')?.addEventListener('click', function() {
+            const formData = new FormData(form);
+            formData.append('save_as_draft', 'true');
+            
+            fetch(window.location.href, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Form saved as draft successfully!');
+                } else {
+                    alert('Error saving draft: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error saving draft. Please try again.');
+            });
+        });
+        
+        // Auto-save every 30 seconds
+        let autoSaveTimer;
+        function startAutoSave() {
+            autoSaveTimer = setInterval(() => {
+                if (document.querySelector('#save-draft')) {
+                    document.querySelector('#save-draft').click();
+                }
+            }, 30000); // 30 seconds
+        }
+        
+        // Start auto-save when user starts typing
+        form.addEventListener('input', () => {
+            if (!autoSaveTimer) {
+                startAutoSave();
+            }
+        });
+        
+        // Stop auto-save when form is submitted
+        form.addEventListener('submit', () => {
+            if (autoSaveTimer) {
+                clearInterval(autoSaveTimer);
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,92 @@
+<!-- templates/forms/submission_detail.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Submission Details - {{ submission.survey_id }}</h3>
+                    <div class="card-tools">
+                        <span class="badge badge-{{ submission.status|default:'info' }}">
+                            {{ submission.get_status_display }}
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-bordered">
+                                <tr>
+                                    <th>Submission ID:</th>
+                                    <td>{{ submission.survey_id }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Status:</th>
+                                    <td>{{ submission.get_status_display }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Submitted By:</th>
+                                    <td>{{ submission.submitted_by|default:"N/A" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Submitted At:</th>
+                                    <td>{{ submission.submitted_at|date:"Y-m-d H:i:s" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Reviewed By:</th>
+                                    <td>{{ submission.reviewed_by|default:"N/A" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Reviewed At:</th>
+                                    <td>{{ submission.reviewed_at|date:"Y-m-d H:i:s"|default:"N/A" }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <h4>Form Data</h4>
+                    <div class="row">
+                        {% for data in submission_data %}
+                        <div class="col-md-6 mb-3">
+                            <div class="card">
+                                <div class="card-header py-2">
+                                    <strong>{{ data.question.q_number|default:"" }}. {{ data.question.label }}</strong>
+                                </div>
+                                <div class="card-body py-2">
+                                    {% if data.image_value %}
+                                        <img src="{{ data.image_value.url }}" alt="{{ data.question.label }}" class="img-fluid" style="max-height: 200px;">
+                                    {% elif data.file_value %}
+                                        <a href="{{ data.file_value.url }}" target="_blank">Download File</a>
+                                    {% elif data.json_value %}
+                                        <pre>{{ data.json_value|pprint }}</pre>
+                                    {% else %}
+                                        {{ data.value|default:"Not answered" }}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <a href="{% url 'form_submission_list' submission.subunit.id %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to List
+                    </a>
+                    {% if submission.status == 'submitted' and request.user.is_staff %}
+                    <a href="{% url 'review_submission' submission.id %}?action=approve" class="btn btn-success">
+                        <i class="fas fa-check"></i> Approve
+                    </a>
+                    <a href="{% url 'review_submission' submission.id %}?action=reject" class="btn btn-danger">
+                        <i class="fas fa-times"></i> Reject
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

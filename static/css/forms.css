@@ -1,0 +1,166 @@
+/* static/css/forms.css */
+/* Form styling */
+.question-field {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #3498db;
+}
+
+.question-field:hover {
+    background: #f1f8ff;
+}
+
+.question-field label {
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.question-number {
+    background: #3498db;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    margin-right: 8px;
+}
+
+/* Radio button styling */
+input[type="radio"] {
+    margin-right: 8px;
+}
+
+.radio-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.radio-option {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.radio-option:hover {
+    background-color: #e3f2fd;
+}
+
+/* Checkbox styling */
+input[type="checkbox"] {
+    margin-right: 8px;
+}
+
+/* Datepicker styling */
+.flatpickr-calendar {
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    border-radius: 8px;
+}
+
+.flatpickr-day.selected {
+    background: #3498db;
+    border-color: #3498db;
+}
+
+/* File upload styling */
+input[type="file"] {
+    padding: 8px;
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    width: 100%;
+    cursor: pointer;
+}
+
+input[type="file"]:hover {
+    border-color: #3498db;
+    background: #f8f9fa;
+}
+
+/* Tab styling */
+.nav-tabs {
+    border-bottom: 2px solid #dee2e6;
+}
+
+.nav-tabs .nav-link {
+    border: none;
+    color: #6c757d;
+    font-weight: 500;
+    padding: 12px 24px;
+    transition: all 0.3s;
+}
+
+.nav-tabs .nav-link:hover {
+    color: #3498db;
+    background: transparent;
+    border: none;
+}
+
+.nav-tabs .nav-link.active {
+    color: #3498db;
+    border-bottom: 3px solid #3498db;
+    background: transparent;
+    font-weight: 600;
+}
+
+/* Accordion styling */
+.accordion-button:not(.collapsed) {
+    color: #3498db;
+    background-color: #e3f2fd;
+    box-shadow: none;
+}
+
+.accordion-button:focus {
+    box-shadow: 0 0 0 0.25rem rgba(52, 152, 219, 0.25);
+}
+
+.accordion-body {
+    background: #f8f9fa;
+    border-radius: 0 0 8px 8px;
+}
+
+/* Required field indicator */
+.required-star {
+    color: #e74c3c;
+    margin-left: 4px;
+}
+
+/* Error styling */
+.errorlist {
+    list-style: none;
+    padding-left: 0;
+    margin-top: 8px;
+    margin-bottom: 0;
+}
+
+.errorlist li {
+    color: #e74c3c;
+    font-size: 0.875em;
+    padding: 4px 8px;
+    background: #fde8e8;
+    border-radius: 4px;
+    margin-top: 4px;
+}
+
+/* Success message */
+.alert-success {
+    background: #d4edda;
+    border-color: #c3e6cb;
+    color: #155724;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .nav-tabs .nav-link {
+        padding: 8px 16px;
+        font-size: 0.9em;
+    }
+    
+    .question-field {
+        padding: 0.75rem;
+    }
+}
