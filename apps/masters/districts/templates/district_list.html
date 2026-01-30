@@ -54,16 +54,6 @@
                     {% endfor %}
                 </select>
 
-                <select name="status" class="form-select form-select-sm">
-                    <option value="">All</option>
-                    <option value="active" {% if status == 'active' %}selected{% endif %}>
-                        Active
-                    </option>
-                    <option value="inactive" {% if status == 'inactive' %}selected{% endif %}>
-                        Inactive
-                    </option>
-                </select>
-
                 <button class="btn btn-sm btn-primary">
                     <i class="fas fa-filter"></i>
                 </button>

@@ -26,6 +26,7 @@ class District(models.Model):
         db_table = 'masters_district'
         managed = True
         unique_together = ('name', 'state')
+        ordering = ['name']
 
     def __str__(self):
         return self.name

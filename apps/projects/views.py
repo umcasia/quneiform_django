@@ -116,7 +116,7 @@ class ApproveProjectView(
 
             messages.success(
                 request,
-                "Project approved & admin user created successfully"
+                "Project approved & organization admin user created successfully"
             )
 
         except Exception as e:

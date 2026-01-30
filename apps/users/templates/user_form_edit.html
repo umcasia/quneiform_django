@@ -1,0 +1,556 @@
+<!-- templates/user_form_edit.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Edit User{% endblock %}
+{% block page_title %}Edit User{% endblock %}
+{% block page_description %}Edit existing user with roles and location access{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/sumoselect@3.0.3/sumoselect.min.css" rel="stylesheet">
+<style>
+    .loader-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 9999;
+        display: none;
+    }
+
+    .loader {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        border: 8px solid #f3f3f3;
+        border-top: 8px solid #3498db;
+        border-radius: 50%;
+        width: 80px;
+        height: 80px;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: translate(-50%, -50%) rotate(0deg); }
+        100% { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+
+    .custom-card {
+        border: 1px solid #dee2e6;
+        border-radius: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .custom-card-header {
+        background-color: #f8f9fa;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .form-label {
+        font-weight: 600;
+    }
+
+    .required::after {
+        content: " *";
+        color: red;
+        font-weight: bold;
+    }
+
+    .SumoSelect {
+        width: 100% !important;
+    }
+
+    .invalid-feedback {
+        display: block;
+        color: #dc3545;
+        font-size: 0.875em;
+        margin-top: 0.25rem;
+    }
+
+    .subunit-card {
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        margin-bottom: 1.5rem;
+        background: #fff;
+    }
+
+    .subunit-header {
+        background-color: #f8f9fa;
+        padding: 1rem;
+        border-bottom: 1px solid #dee2e6;
+        font-weight: 600;
+        color: #495057;
+    }
+
+    .subunit-body {
+        padding: 1.25rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    
+    <div class="mb-4">
+        <a href="{% url 'user_list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i> Back to Users
+        </a>
+    </div>
+
+    <div class="loader-overlay" id="loader-overlay">
+        <div class="loader"></div>
+    </div>
+
+    <div id="success-message" class="alert alert-success" style="display: none;"></div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Edit User: {{ edit_user.username }}</h5>
+        </div>
+        <div class="card-body">
+            <form id="editForm" name="editForm">
+                {% csrf_token %}
+                
+                <!-- Basic Information -->
+                <div class="row mb-4">
+                    <div class="col-md-12 mb-3">
+                        <h6 class="text-primary"><i class="fas fa-user me-2"></i>Basic Information</h6>
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <label for="editName" class="form-label required">Name</label>
+                        <input type="text" class="form-control" id="editName" name="name" 
+                               value="{{ edit_user.get_full_name }}" placeholder="Name">
+                        <div class="invalid-feedback" id="editName-error"></div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <label for="editUsername" class="form-label required">Username</label>
+                        <input type="text" class="form-control" id="editUsername" name="username" 
+                               value="{{ edit_user.username }}" 
+                               placeholder="Only Alphanumerics, underscores _, and @ are allowed">
+                        <div class="invalid-feedback" id="editUsername-error"></div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <label for="editEmail" class="form-label required">Email</label>
+                        <input type="email" class="form-control" id="editEmail" name="email" 
+                               value="{{ edit_user.email }}" placeholder="Email">
+                        <div class="invalid-feedback" id="editEmail-error"></div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <label for="editMobile" class="form-label required">Mobile</label>
+                        <input type="text" class="form-control" id="editMobile" name="mobile" 
+                               value="{{ edit_user.mobile }}" placeholder="Mobile">
+                        <div class="invalid-feedback" id="editMobile-error"></div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <label for="editPassword" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="editPassword" name="password" 
+                               placeholder="Leave blank to keep current password">
+                        <small class="text-muted">Must contain at least 8 characters with uppercase, lowercase, number, and special character</small>
+                        <div class="invalid-feedback" id="editPassword-error"></div>
+                    </div>
+                    
+                    <div class="col-md-4 mb-3">
+                        <label for="designation_id" class="form-label required">Designation</label>
+                        <select name="designation_id" class="form-control" id="designation_id">
+                            <option value="">-- Select Designation --</option>
+                            {% for d in designations %}
+                                <option value="{{ d.designation_id }}" 
+                                        {% if d.designation_id == user_designation %}selected{% endif %}>
+                                    {{ d.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <div class="invalid-feedback" id="designation_id-error"></div>
+                    </div>
+                    
+                    {% if user.is_superuser %}
+                    <div class="col-md-12 mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="true" id="editSuperadmin"
+                                   {% if edit_user.is_superuser %}checked{% endif %}>
+                            <label class="form-check-label" for="editSuperadmin">
+                                Superadmin (<span class="text-danger">Select only if you want this user to be Superadmin</span>)
+                            </label>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Location Access -->
+                <div class="row mb-4">
+                    <div class="col-md-12 mb-3">
+                        <div class="custom-card">
+                            <div class="custom-card-header">
+                                <div class="col-md-12 mb-3">
+                                    <h6 class="text-primary"><i class="fas fa-map-marker-alt me-2"></i>Location Access</h6>
+                                </div>
+                            </div>
+                            <div class="p-2">
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <label for="editStateId" class="form-label">States</label>
+                                        <select name="states[]" id="editStateId" multiple class="state-select form-control select-multi">
+                                            {% for state in states %}
+                                            <option value="{{ state.state_id }}" 
+                                                    {% if state.state_id in user_states %}selected{% endif %}>
+                                                {{ state.name }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                        <div class="invalid-feedback" id="editState-error"></div>
+                                    </div>
+                                    
+                                    <div class="col-md-4 mb-3">
+                                        <label for="editDistrictId" class="form-label">Districts</label>
+                                        <select name="districts[]" id="editDistrictId" multiple class="district-select form-control select-multi">
+                                            <!-- Districts will be populated dynamically -->
+                                        </select>
+                                        <div class="invalid-feedback" id="editDistrict-error"></div>
+                                    </div>
+                                    
+                                    <div class="col-md-4 mb-3">
+                                        <label for="editCityId" class="form-label">City</label>
+                                        <select name="cities[]" id="editCityId" multiple class="city-select form-control select-multi">
+                                            <!-- Cities will be populated dynamically -->
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Subunit Role Assignment -->
+                <div class="row mb-4">
+                    <div class="col-md-12 mb-3">
+                        <h6 class="text-primary"><i class="fas fa-user-shield me-2"></i>Subunit Role Assignment</h6>
+                    </div>
+                    
+                    {% for subunit in subunits_with_roles %}
+                    <div class="col-md-6 mb-3">
+                        <div class="subunit-card">
+                            <div class="subunit-header">
+                                {{ subunit.name }} ({{ subunit.acronym }})
+                            </div>
+                            <div class="subunit-body">
+                                <label class="form-label required">Role</label>
+                                <select name="subunit[{{ subunit.id }}][roles]" 
+                                        class="form-select su-role-select" 
+                                        data-subunit-id="{{ subunit.id }}" 
+                                        required>
+                                    <option value="" disabled>Please assign a role</option>
+                                    {% for role in subunit.roles %}
+                                    <option value="{{ role.id }}"
+                                            {% if subunit.current_role == role.id %}selected{% endif %}>
+                                        {{ role.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="invalid-feedback" id="role-{{ subunit.id }}-error"></div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <!-- Submit Button -->
+                <div class="row">
+                    <div class="col-md-12">
+                        <button type="submit" class="btn btn-primary" id="submit-user-btn">
+                            <i class="fas fa-save me-2"></i> Update User
+                        </button>
+                        <a href="{% url 'user_list' %}" class="btn btn-secondary ms-2">
+                            <i class="fas fa-times me-2"></i> Cancel
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sumoselect@3.0.3/jquery.sumoselect.min.js"></script>
+<script>
+    $(document).ready(function() {
+        function showLoader() {
+            $('#loader-overlay').fadeIn();
+        }
+        
+        function hideLoader() {
+            $('#loader-overlay').fadeOut();
+        }
+        
+        // Initialize select2 for dropdowns
+        $('#editStateId').select2();
+        $('#editDistrictId').select2();
+        $('#editCityId').select2();
+        
+        // Get pre-selected states
+        var selectedStates = [];
+        $('#editStateId option:selected').each(function() {
+            selectedStates.push($(this).val());
+        });
+        
+        // Load districts for selected states on page load
+        if (selectedStates.length > 0) {
+            loadDistricts(selectedStates);
+        }
+        
+        // STATE → DISTRICT cascade
+        $('#editStateId').on('change', function() {
+            var stateIds = $(this).val();
+            loadDistricts(stateIds);
+        });
+        
+        // DISTRICT → CITY cascade
+        $('#editDistrictId').on('change', function() {
+            var districtIds = $(this).val();
+            loadCities(districtIds);
+        });
+        
+        // Function to load districts
+        function loadDistricts(stateIds) {
+            $('#editDistrictId').empty();
+            $('#editCityId').empty();
+            
+            if (!stateIds || stateIds.length === 0) {
+                $('#editDistrictId').select2({
+                    placeholder: "Select districts",
+                    allowClear: true
+                });
+                return;
+            }
+            
+            showLoader();
+            $.ajax({
+                url: "{% url 'location_cascade' 'districts' %}",
+                type: 'GET',
+                data: { 
+                    'state_ids[]': stateIds 
+                },
+                success: function(data) {
+                    console.log("District API Response:", data);
+                    
+                    // Populate districts
+                    data.forEach(function(d) {
+                        $('#editDistrictId').append(
+                            `<option value="${d.id}">${d.name}</option>`
+                        );
+                    });
+                    
+                    // Select previously selected districts
+                    var userDistricts = {{ user_districts|safe }};
+                    if (userDistricts && userDistricts.length > 0) {
+                        $('#editDistrictId').val(userDistricts).trigger('change');
+                    }
+                    
+                    $('#editDistrictId').select2({
+                        placeholder: "Select districts",
+                        allowClear: true
+                    });
+                    
+                    // Load cities for selected districts
+                    if (userDistricts && userDistricts.length > 0) {
+                        loadCities(userDistricts);
+                    }
+                    
+                    hideLoader();
+                },
+                error: function(xhr, status, error) {
+                    hideLoader();
+                    console.error('Error fetching districts:', error);
+                    alert('Error loading districts. Please try again.');
+                }
+            });
+        }
+        
+        // Function to load cities
+        function loadCities(districtIds) {
+            $('#editCityId').empty();
+            
+            if (!districtIds || districtIds.length === 0) {
+                $('#editCityId').select2({
+                    placeholder: "Select cities",
+                    allowClear: true
+                });
+                return;
+            }
+            
+            showLoader();
+            $.ajax({
+                url: "{% url 'location_cascade' 'cities' %}",
+                type: 'GET',
+                data: { 
+                    'district_ids[]': districtIds 
+                },
+                success: function(data) {
+                    console.log("City API Response:", data);
+                    
+                    // Populate cities
+                    data.forEach(function(c) {
+                        $('#editCityId').append(
+                            `<option value="${c.id}">${c.name}</option>`
+                        );
+                    });
+                    
+                    // Select previously selected cities
+                    var userCities = {{ user_cities|safe }};
+                    if (userCities && userCities.length > 0) {
+                        $('#editCityId').val(userCities).trigger('change');
+                    }
+                    
+                    $('#editCityId').select2({
+                        placeholder: "Select cities",
+                        allowClear: true
+                    });
+                    
+                    hideLoader();
+                },
+                error: function(xhr, status, error) {
+                    hideLoader();
+                    console.error('Error fetching cities:', error);
+                    alert('Error loading cities. Please try again.');
+                }
+            });
+        }
+        
+        // Form submission
+        $('#editForm').submit(function(e) {
+            e.preventDefault();
+            
+            var button = $('#submit-user-btn');
+            var originalText = button.html();
+            button.prop('disabled', true);
+            button.html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Updating...');
+            
+            // Clear previous validation errors
+            $('.invalid-feedback').empty();
+            $('.form-control, .form-select').removeClass('is-invalid');
+            
+            // Prepare form data
+            var formData = {
+                'name': $('#editName').val(),
+                'username': $('#editUsername').val(),
+                'email': $('#editEmail').val(),
+                'mobile': $('#editMobile').val(),
+                'password': $('#editPassword').val(),
+                'designation_id': $('#designation_id').val(),
+                'superadmin': $('#editSuperadmin').prop('checked') ? 'true' : 'false',
+                'states': $('#editStateId').val() || [],
+                'districts': $('#editDistrictId').val() || [],
+                'cities': $('#editCityId').val() || [],
+                'subunit': {}
+            };
+            
+            // Collect subunit roles
+            $('.su-role-select').each(function() {
+                let subunitId = $(this).data('subunit-id');
+                let roleId = $(this).val();
+                
+                if (roleId && roleId !== '') {
+                    formData['subunit'][subunitId] = {
+                        "roles": roleId,
+                        "subunit_id": subunitId
+                    };
+                }
+            });
+            
+            // Debug: show what's being sent
+            console.log("Form data to send:", JSON.stringify(formData, null, 2));
+            
+            // Send AJAX request
+            showLoader();
+            $.ajax({
+                type: "POST",
+                url: "{% url 'user_edit' edit_user.pk %}",
+                contentType: "application/json",
+                data: JSON.stringify(formData),
+                headers: {
+                    'X-CSRFTOKEN': '{{ csrf_token }}'
+                },
+                success: function(response) {
+                    hideLoader();
+                    button.prop('disabled', false);
+                    button.html(originalText);
+                    
+                    if (response.status == 200) {
+                        $('#success-message').text(response.description).fadeIn();
+                        
+                        // Redirect after 3 seconds
+                        setTimeout(function() {
+                            window.location.href = "{% url 'user_list' %}";
+                        }, 3000);
+                    }
+                },
+                error: function(xhr) {
+                    hideLoader();
+                    button.prop('disabled', false);
+                    button.html(originalText);
+                    
+                    if (xhr.status == 422) {
+                        var errors = xhr.responseJSON.errors;
+                        console.log("Validation errors:", errors);
+                        
+                        // Display validation errors
+                        for (var field in errors) {
+                            var errorElement = $('#' + field + '-error');
+                            var inputElement = $('[name="' + field + '"]');
+                            
+                            if (errorElement.length && inputElement.length) {
+                                inputElement.addClass('is-invalid');
+                                errorElement.text(errors[field].join(' | '));
+                            } else if (field === 'name') {
+                                $('#editName').addClass('is-invalid');
+                                $('#editName-error').text(errors[field].join(' | '));
+                            } else if (field === 'username') {
+                                $('#editUsername').addClass('is-invalid');
+                                $('#editUsername-error').text(errors[field].join(' | '));
+                            } else if (field === 'email') {
+                                $('#editEmail').addClass('is-invalid');
+                                $('#editEmail-error').text(errors[field].join(' | '));
+                            } else if (field === 'mobile') {
+                                $('#editMobile').addClass('is-invalid');
+                                $('#editMobile-error').text(errors[field].join(' | '));
+                            } else if (field === 'password') {
+                                $('#editPassword').addClass('is-invalid');
+                                $('#editPassword-error').text(errors[field].join(' | '));
+                            } else if (field === 'states') {
+                                $('#editStateId').addClass('is-invalid');
+                                $('#editState-error').text(errors[field].join(' | '));
+                            } else if (field === 'districts') {
+                                $('#editDistrictId').addClass('is-invalid');
+                                $('#editDistrict-error').text(errors[field].join(' | '));
+                            } else if (field === 'roles') {
+                                $('.su-role-select').addClass('is-invalid');
+                                $('.su-role-select').next('.invalid-feedback').text(errors[field].join(' | '));
+                            }
+                        }
+                    } else {
+                        var errorMsg = xhr.responseJSON?.error || 'An error occurred while updating the user. Please try again.';
+                        alert(errorMsg);
+                        console.error("Update user error: ", xhr.responseJSON);
+                    }
+                }
+            });
+        });
+        
+        // Load districts on page load if states are selected
+        if (selectedStates.length > 0) {
+            setTimeout(function() {
+                loadDistricts(selectedStates);
+            }, 500);
+        }
+    });
+</script>
+{% endblock %}

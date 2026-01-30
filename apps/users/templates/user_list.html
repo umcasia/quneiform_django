@@ -80,34 +80,34 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for project in users %}
+                        {% for user in users %}
                         <tr>
                             <td>{{ forloop.counter }}</td>
                             <td>
                                 <div class="d-flex align-items-center">
                                     <div>
-                                        <strong>{{ project.username }}</strong><br>
-                                        <small class="text-muted">{{ project.first_name }}</small>
+                                        <strong>{{ user.username }}</strong><br>
+                                        <small class="text-muted">{{ user.first_name }} {{ user.last_name }}</small>
                                     </div>
                                 </div>
                             </td>
                             <td>
-                                <i class="fas fa-phone text-muted mr-1"></i> {{ project.mobile }}<br>
-                                <i class="fas fa-envelope text-muted mr-1"></i> {{ project.email }}
+                                <i class="fas fa-phone text-muted mr-1"></i> {{ user.mobile }}<br>
+                                <i class="fas fa-envelope text-muted mr-1"></i> {{ user.email }}
                             </td>
                             <td>
-                                {{ project.created_at|date:"d/m/Y" }}<br>
-                                <small class="text-muted">{{ project.created_at|timesince }} ago</small>
+                                {{ user.created_at|date:"d/m/Y" }}<br>
+                                <small class="text-muted">{{ user.created_at|timesince }} ago</small>
                             </td>
                             <td>
-                                {% if project.userhassudesignation_set.first %}
-                                    {{ project.userhassudesignation_set.first.designation.name }}
+                                {% if user.userhassudesignation_set.first %}
+                                    {{ user.userhassudesignation_set.first.designation.name }}
                                 {% else %}
                                     -
                                 {% endif %}
                             </td>
                             <td>
-                                {% for su in project.userhassurole_set.all %}
+                                {% for su in user.userhassurole_set.all %}
                                     <span class="badge bg-info">
                                         {{ su.subunit.name }} - {{ su.role.name }}
                                     </span><br>
@@ -117,16 +117,17 @@
                             </td>
 
                             <td>
-                                <div class="btn-group" role="group">
-                                    <a href="{% url 'user_edit' user.id %}" class="btn btn-sm btn-info">
+                                <div class="action-buttons">
+                                    <a href="{% url 'user_edit' user.id %}" class="btn-edit">
                                         <i class="fas fa-edit"></i>
                                     </a>
                                     {% if user.is_organization_admin or perms.subunits.manage_subunit %}
 
-                                    <button type="button" class="btn btn-sm btn-danger" 
+                                    <button type="button" class="btn-reject" 
                                             onclick="confirmDelete({{ user.id }})">
                                         <i class="fas fa-trash"></i>
                                     </button>
+
                                     {% endif %}
                                 </div>
                             </td>
@@ -175,10 +176,13 @@
 {% block extra_js %}
 <script>
     function confirmDelete(userId) {
-        $('#deleteForm').attr('action', '/users/delete/' + userId + '/');
-        var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-        deleteModal.show();
+        let form = document.getElementById("deleteForm");
+        form.action = `/users/delete/${userId}/`;  // Set delete URL
+
+        let modal = new bootstrap.Modal(document.getElementById("deleteModal"));
+        modal.show();
     }
+    
     $(document).ready(function() {
         // Initialize DataTable
         $('#dataTable').DataTable({
