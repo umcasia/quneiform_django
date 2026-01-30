@@ -7,20 +7,15 @@ __pycache__/
 # Virtualenv
 .venv/
 .env
+translation.log
 
-
+# Django stuff
+*.sqlite3
+db.sqlite3
+!media/.gitkeep
+staticfiles/
+media/
 # VS Code / IDE
 .vscode/
 .idea/
 *.swp
-
-
-#migrations
-# apps/accounts/migrations/
-# apps/masters/states/migrations/
-# apps/masters/districts/migrations/
-# apps/masters/city/migrations/
-# apps/masters/designations/migrations/
-# apps/projects/migrations/
-# apps/subunits/migrations/
-# apps/users/migrations/
